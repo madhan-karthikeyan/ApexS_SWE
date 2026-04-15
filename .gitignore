@@ -87,6 +87,11 @@ env.bak/
 
 
 
+# Environment variables (NEVER commit .env files with secrets)
+.env
+.env.local
+.env.*.local
+
 # Logs
 *.log
 *.out

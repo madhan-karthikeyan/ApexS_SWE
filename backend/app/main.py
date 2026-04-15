@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 from app.api.v1 import auth, teams, datasets, sprints, stories, plans, reports
 from app.api.v1.context import router as context_router
-from app.core.config import settings
+from app.core.config import settings, get_cors_origins
 from app.core.database import Base, engine
 from app.core.minio_client import ensure_bucket
 from app.models.team import ScrumTeam
@@ -30,7 +30,8 @@ _REQUEST_COUNT = 0
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=get_cors_origins(),
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

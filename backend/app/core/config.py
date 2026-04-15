@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     use_celery: bool = True
     allow_thread_fallback: bool = False
     enforce_auth: bool = False
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origin_regex: str = r"https://.*\.netlify\.app"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -31,3 +33,7 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def get_cors_origins() -> list[str]:
+    return [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]

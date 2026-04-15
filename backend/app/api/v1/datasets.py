@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.minio_client import read_bytes, save_bytes
 from app.models.dataset_upload import DatasetUpload
+from app.models.team import ScrumTeam
 from app.schemas.common import DatasetPreviewResponse, DatasetUploadRead
 
 router = APIRouter()
@@ -22,6 +23,11 @@ REQUIRED_COLUMNS = ["story_id", "story_points", "business_value", "risk_score"]
 @router.post("/upload")
 async def upload_dataset(file: UploadFile = File(...), team_id: str = Form(...), db: Session = Depends(get_db)):
     content = await file.read()
+
+    team = db.query(ScrumTeam).filter(ScrumTeam.team_id == str(team_id)).first()
+    if not team:
+        raise HTTPException(status_code=400, detail=f"Invalid team_id: {team_id}")
+
     try:
         df = pd.read_csv(BytesIO(content))
     except Exception as exc:

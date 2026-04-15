@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -45,6 +45,15 @@ export default function DatasetUpload() {
     },
     enabled: !!teamId,
   })
+
+  useEffect(() => {
+    const teams = teamsQuery.data ?? []
+    if (teams.length === 0) return
+    const currentExists = teams.some((team) => team.team_id === teamId)
+    if (!currentExists) {
+      setTeamId(teams[0].team_id)
+    }
+  }, [teamId, teamsQuery.data, setTeamId])
 
   const parseCsvLine = (line: string): string[] => {
     const values: string[] = []
@@ -106,7 +115,13 @@ export default function DatasetUpload() {
     } catch (err: any) {
       const detail = err?.response?.data?.detail
       setStatus('Upload failed')
-      setError(typeof detail === 'string' ? detail : 'Unable to upload dataset. Check CSV format and required columns.')
+      if (typeof detail === 'string') {
+        setError(detail)
+      } else if (Array.isArray(detail)) {
+        setError(detail.map((d) => d?.msg ?? JSON.stringify(d)).join('; '))
+      } else {
+        setError('Unable to upload dataset. Check CSV format and required columns.')
+      }
     }
   }
 

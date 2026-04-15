@@ -1,0 +1,80 @@
+Implementation Handoff Brief: Explainable Context-Aware Sprint Planning System
+
+1) Project identity and goal
+
+Project title:
+Explainable Context-Aware Sprint Planning With Real-World Constraints
+
+The project is now a working full-stack decision-support system for Scrum planning.
+It uses historical sprint data, context extraction, learned prioritization weights, constrained optimization,
+and explainability to generate and justify sprint plans.
+
+2) Current implementation state (updated)
+
+- Backend is implemented with FastAPI, SQLAlchemy models, service layer, and planning worker pipeline.
+- Frontend is implemented with React + TypeScript and all core workflow screens are wired to live APIs.
+- Async planning lifecycle is implemented with job status polling and progress steps.
+- Approval and export flows are implemented.
+- Dockerized stack runs with db, redis, minio, backend, frontend, and celery_worker services.
+
+3) Core novelty position (implementation-backed)
+
+- Context-aware learned weighting from historical data is implemented.
+- Constraint-driven optimization (capacity, risk, skills, dependencies) is implemented.
+- Explainability for selected/rejected stories is implemented.
+- Full decision-support loop from upload to export is implemented.
+
+4) End-to-end checklist alignment
+
+The implementation now supports the practical stage checklist:
+
+- Stage 0: services up and reachable
+- Stage 1: team + dataset upload
+- Stage 2: sprint configuration + job creation
+- Stage 3: processing status progression with plan_id completion
+- Stage 4: generated plan with totals and selected stories
+- Stage 5: plan quality checks (risk/skills/dependencies/duplicates)
+- Stage 6: explainability panel
+- Stage 7: approval state persistence
+- Stage 8: CSV/JSON export consistency
+- Stage 9: rerun regression behavior
+
+5) Key implementation paths
+
+Backend
+
+- app entry: `backend/app/main.py`
+- planning APIs: `backend/app/api/v1/plans.py`
+- dataset APIs: `backend/app/api/v1/datasets.py`
+- planning pipeline: `backend/app/workers/planning_task.py`
+- optimization engine: `backend/app/services/optimization_engine.py`
+- explainability engine: `backend/app/services/explainability_engine.py`
+
+Frontend
+
+- routes: `frontend/src/App.tsx`
+- pages: `frontend/src/pages/*`
+- workflow store: `frontend/src/store/sprintStore.ts`
+- API client: `frontend/src/utils/api.ts`
+
+6) Practical verification snapshot
+
+- `docker compose ps` => all expected services up
+- endpoint probes:
+  - http://localhost:5173 -> 200
+  - http://localhost:8000 -> 200
+  - http://localhost:8000/docs -> 200
+  - http://localhost:9001 -> 200
+- tests: `pytest -q` => passing (active suite)
+- frontend build: `cd frontend && npm run build` => pass
+
+7) Remaining non-blocking improvements
+
+- add CI workflow file under `.github/workflows/`
+- further strengthen explainability confidence semantics for rejected stories
+- improve production monitoring/alerting depth
+
+8) Final positioning for report/viva
+
+This project should now be presented as a working implementation with validated end-to-end behavior,
+not as a mockup-only prototype. Remaining tasks are hardening and polish, not core feature completion.

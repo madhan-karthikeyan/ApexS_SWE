@@ -1,0 +1,17 @@
+name: Test Suite
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env: {POSTGRES_DB: test_db, POSTGRES_USER: test, POSTGRES_PASSWORD: test}
+      redis:
+        image: redis:7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with: {python-version: '3.11'}
+      - run: pip install -r backend/requirements.txt
+      - run: pytest tests/ -v --tb=short

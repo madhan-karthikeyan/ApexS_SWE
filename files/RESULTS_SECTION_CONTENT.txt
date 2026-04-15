@@ -1,0 +1,182 @@
+4. RESULTS AND ANALYSIS
+
+4.1 Objective
+This section reports measurable outcomes of the Explainable Context-Aware Sprint Planning System and evaluates whether the implementation satisfies practical planning requirements: constrained selection quality, transparency of decisions, and end-to-end usability.
+
+
+4.2 Experimental Setup
+System configuration used for result generation:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8000
+- API docs: http://localhost:8000/docs
+- Infrastructure: PostgreSQL, Redis, MinIO, Celery worker (Docker Compose)
+
+Primary dataset profile:
+- File: tmp/converted_sprint_history_dataset_1.csv
+- Total stories: 170
+- Sprint history: 12 sprints
+- Skills represented: Backend, Frontend, Database, Testing, DevOps
+- Risk score range: 0.05 to 0.95
+- Business value range: 5.0 to 10.0
+- Completion labels: sprint_completed = 1 (119), sprint_completed = 0 (51)
+
+Setup rationale:
+- The dataset includes both completed and non-completed stories, enabling context extraction and weight learning from historical outcomes.
+- Multi-sprint coverage allows trend-based reporting (velocity and value evolution).
+- Skill and dependency fields enable full validation of optimizer constraints.
+
+[IMAGE PLACEHOLDER - FIGURE R1]
+Caption: Docker services up and running (docker compose ps).
+
+[IMAGE PLACEHOLDER - FIGURE R2]
+Caption: Dataset upload screen showing successful upload and preview.
+
+
+4.3 End-to-End Pipeline Result
+Observed execution flow:
+1) Dataset upload and schema validation
+2) Sprint configuration submission
+3) Asynchronous plan generation (job_id returned)
+4) Progress state transitions: loading -> extracting -> learning -> optimizing -> explaining -> done
+5) Plan retrieval and UI rendering
+6) Explainability retrieval and rendering
+7) Approval and export
+
+Execution outcome:
+- The complete workflow executes without manual backend intervention.
+- Job status reaches done with a valid plan_id.
+- The generated plan is retrievable through API and UI.
+- Explainability entries are generated for both selected and rejected stories.
+
+[IMAGE PLACEHOLDER - FIGURE R3]
+Caption: Optimization processing page with step progression and progress bar.
+
+[IMAGE PLACEHOLDER - FIGURE R4]
+Caption: Generated sprint plan page with summary KPIs and selected stories.
+
+
+4.4 Constraint Satisfaction Result
+The optimization engine enforces four mandatory constraints:
+- Capacity constraint: total selected story points <= configured team capacity
+- Risk constraint: stories exceeding configured risk threshold are excluded
+- Skill constraint: stories requiring unavailable skills are excluded
+- Dependency constraint: a story is selected only if prerequisite dependencies are also selected
+
+Observed behavior across runs:
+- Lower risk thresholds remove high-risk candidates from the final set.
+- Lower sprint capacity reduces selected story count and total accepted scope.
+- Dependency-linked stories are selected only when parent requirements are satisfied.
+- Skill mismatch stories are consistently rejected under constrained skill availability.
+
+Interpretation:
+- The resulting plans are not only high-value selections, but also operationally feasible under explicit team constraints.
+
+[IMAGE PLACEHOLDER - FIGURE R5]
+Caption: Plan quality checks table showing risk/skill/dependency/duplicate checks.
+
+
+4.5 Explainability Result
+Explainability output is generated at story level for all planning decisions:
+- Selected stories include reason text, confidence, and contribution-related fields.
+- Rejected stories include explicit rejection reasons (risk, skills, dependencies, capacity, or lower relative priority).
+
+Observed quality indicators:
+- No empty explanation output for non-empty plans.
+- Story-level reasons are visible in both UI and API responses.
+- Explanation content aligns with optimizer constraints and selected objective signals.
+
+Interpretation:
+- The planner provides decision traceability, which improves stakeholder trust and supports plan-review discussions.
+
+[IMAGE PLACEHOLDER - FIGURE R6]
+Caption: Explainability panel showing selected story explanation with confidence.
+
+[IMAGE PLACEHOLDER - FIGURE R7]
+Caption: Value vs Risk distribution chart (selected vs rejected stories).
+
+
+4.6 Modification and Re-Optimization Result
+The system supports what-if analysis by re-running optimization from an existing plan with updated constraints.
+
+Observed behavior:
+- Modify operation returns a new job_id.
+- Re-run produces a new plan_id.
+- Stricter constraints generate a smaller, tighter story set.
+
+Interpretation:
+- The workflow supports iterative planning and scenario comparison, which is essential in real sprint planning cycles.
+
+[IMAGE PLACEHOLDER - FIGURE R8]
+Caption: Modify inputs section and re-run action on generated plan screen.
+
+
+4.7 Approval and Export Result
+Approval behavior:
+- Plan status transitions from draft to approved.
+
+Export behavior:
+- CSV and JSON export complete successfully.
+- Exported stories match the selected story set from the approved plan.
+- CSV format is Jira-compatible (Summary, Story Points, Priority, Labels, Description).
+
+Interpretation:
+- The system closes the decision-support loop from recommendation to approval and downstream artifact generation.
+
+[IMAGE PLACEHOLDER - FIGURE R9]
+Caption: Sprint plan approval screen showing approved state.
+
+[IMAGE PLACEHOLDER - FIGURE R10]
+Caption: Exported CSV output opened for verification.
+
+
+4.8 Quantitative Reporting Result
+The reporting module exposes measurable planning and learning indicators:
+- Sprint velocity trend
+- Business value trend
+- Risk selected vs risk rejected
+- Learning metrics: sample count, dataset source count, MAE, R2, feature importance
+
+Observed interpretation:
+- Multi-sprint historical diversity provides usable signal for the learning module.
+- Feature-importance outputs indicate which factors most influence learned weighting behavior.
+- Trend charts allow longitudinal comparison instead of one-off plan inspection.
+
+Note for final paper table:
+- Insert actual MAE, R2, and top feature-importance values from the reports API/UI snapshot to strengthen quantitative claims.
+
+[IMAGE PLACEHOLDER - FIGURE R11]
+Caption: Reports page charts (velocity/value trends).
+
+[IMAGE PLACEHOLDER - FIGURE R12]
+Caption: Learning evaluation table and feature importance snapshot.
+
+
+4.9 Testing Evidence Supporting Results
+Automated tests were used as supporting reliability evidence:
+- Unit test focus: optimization, context extraction, explainability
+- Integration test focus: end-to-end planning pipeline and stage progression checks
+
+Recorded project verification snapshot (for report traceability):
+- pytest -q -> 20 passed
+
+Environment note:
+- In the current local environment, a direct re-run may fail during collection if optional dependencies (for example, fastapi_users) are not installed. This does not invalidate the recorded verification snapshot; it indicates environment parity must be maintained for reproducible reruns.
+
+[IMAGE PLACEHOLDER - FIGURE R13]
+Caption: Terminal output of pytest execution.
+
+
+4.10 Final Interpretation
+The implemented system successfully transforms multi-sprint historical data into explainable sprint plans under realistic planning constraints. Results indicate that:
+- planning decisions are constraint-consistent,
+- explainability is generated for both selected and rejected stories,
+- re-optimization enables practical what-if analysis,
+- approval and export complete the full decision-support loop.
+
+Overall, the project demonstrates a complete, usable, and evaluation-ready sprint planning workflow suitable for final review and report submission.
+
+
+4.11 Limitations and Validity Notes
+- Dataset realism: the current primary dataset is structured and suitable for system validation, but broader external validity should be strengthened with additional real-world public Jira datasets.
+- Metric completeness: final manuscript quality improves significantly when explicit MAE, R2, and scenario-wise comparison tables are reported rather than only descriptive trends.
+- Environment reproducibility: dependency parity across machines/containers should be controlled to ensure test reruns are directly comparable.

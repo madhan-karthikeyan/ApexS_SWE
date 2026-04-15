@@ -1,0 +1,51 @@
+Summary,Story Points,Priority,Labels,Description
+"""Give more control to the Mesos Administrator""",1,Medium,DevOps,Risk: 0.49 | Value: 6.68
+"""The """"configure"""" phase breaks with the IBM JVM.""",1,High,DevOps,Risk: 0.65 | Value: 7.2
+"""Tasks get stuck in TASK_STAGING after a network decode error""",1,Medium,Backend,Risk: 0.54 | Value: 6.98
+"""Update Python Test Framework Support QuiesceOffer and reviveOffer""",1,Medium,Testing,Risk: 0.48 | Value: 6.83
+"""Put authorize logic for teardown into a common function""",1,High,Backend,Risk: 0.67 | Value: 7.15
+"""mesos HA can't delete the  the redundant container on failure slave node.""",1,Medium,DevOps,Risk: 0.54 | Value: 6.91
+"""PortMappingIsolatorTests get kernel stuck.""",1,High,Testing,Risk: 0.63 | Value: 7.08
+"""slave dies unexpectedly: Mismatched checkpoint value for status update TASK_LOST""",1,Medium,Backend,Risk: 0.5 | Value: 6.91
+"""Check dvdcli version when create the DriverClient""",1,Medium,Backend,Risk: 0.57 | Value: 6.98
+"""Restarted agent should shutdown executor if it doesn't know about any tasks""",1,Medium,DevOps,Risk: 0.52 | Value: 6.83
+"""Sandbox access authorization should fail for non existing sandboxes.""",1,High,Backend,Risk: 0.64 | Value: 7.15
+"""Cluster::slaves::shutdown()  doesn't call shutdown on the slaves""",1,High,DevOps,Risk: 0.65 | Value: 7.0
+"""Long lived framework is broken in local runs""",1,High,DevOps,Risk: 0.62 | Value: 7.08
+"""MasterTest.RecoverResourcesOrphanedTask is flaky""",1,Medium,Testing,Risk: 0.48 | Value: 6.75
+"""WebUI redirect doesn't work with stats from /metrics/snapshot""",1,High,DevOps,Risk: 0.69 | Value: 7.15
+"""Mesos Agent crashes when it is unable to reconnect to zookeeper""",1,Medium,Backend,Risk: 0.5 | Value: 6.91
+"""Container with """"Contiv"""" networking fails upon startup""",1,Medium,DevOps,Risk: 0.57 | Value: 6.9
+"""Make recovering frameworks in the Slave asynchronous.""",1,High,Backend,Risk: 0.61 | Value: 7.0
+"""Enabling Port mapping generate segfault """,1,Medium,DevOps,Risk: 0.5 | Value: 6.91
+"""ld: final link failed: Memory exhausted""",1,High,Database,Risk: 0.56 | Value: 7.05
+"""Mesos masters stop to respond after zookeeper cluster recover""",1,Medium,DevOps,Risk: 0.48 | Value: 6.83
+"""Test `MasterAPITest.GetMaster` is flaky for Windows Release build.""",1,Medium,DevOps,Risk: 0.53 | Value: 6.75
+"""UpgradeTest.RefineResourceOnOldAgent is flaky""",1,Medium,Testing,Risk: 0.48 | Value: 6.83
+"""Compile failures with char8_t by MSVC under /std:c++latest(C++20) mode""",1,High,Testing,Risk: 0.63 | Value: 7.15
+"""IO.BlockingWrite always crashes""",1,Medium,Backend,Risk: 0.62 | Value: 6.85
+"""Python installation using `make install` fails inside a symlinked directory""",1,Medium,DevOps,Risk: 0.52 | Value: 6.83
+"""Error building libgrpc++ on Mac from a source tarball""",1,Medium,DevOps,Risk: 0.48 | Value: 6.75
+"""Enable Data filtering for Exporting data to S3""",1,High,Backend,Risk: 0.65 | Value: 7.18
+"""Write integration tests for asset-related actions""",1,High,Testing,Risk: 0.59 | Value: 7.0
+"""Define Release Testing to include Rigorous Unique Value and Index verification""",1,High,Testing,Risk: 0.55 | Value: 7.15
+"""Test and integrate Pushy SOCKS changes""",1,High,Testing,Risk: 0.51 | Value: 7.05
+"""Remove Unnecessary dependencies""",1,High,Testing,Risk: 0.65 | Value: 7.13
+"""Handle index processing event case where an edge exists but entity is missing.""",1,Medium,Database,Risk: 0.47 | Value: 6.65
+"""Unhandled NPE""",1,Medium,Database,Risk: 0.52 | Value: 6.9
+"""Error during username token verification""",1,Medium,Backend,Risk: 0.52 | Value: 6.83
+"""client_id & client_secret Errors (2.2.0)""",1,Medium,Backend,Risk: 0.57 | Value: 6.98
+"""Cannot disassociate a role from a user""",1,High,Backend,Risk: 0.6 | Value: 7.1
+"""When creating a user account with a password that fails validation check, the account is created anyway""",1,Medium,Backend,Risk: 0.48 | Value: 6.83
+"""Add cursor code in response when querying specific enity properties""",1,High,Database,Risk: 0.68 | Value: 7.3
+"""Remove unused CF from V1 of the entity model""",1,High,DevOps,Risk: 0.63 | Value: 7.5
+"""If you pass something that's not a cursor as a cursor, the error is unclear""",1,Medium,Backend,Risk: 0.51 | Value: 6.75
+"""String properties with a plus in them do not match the """"="""" clause, but match """"contains""""""",1,Medium,Database,Risk: 0.51 | Value: 6.95
+"""Query for semicolon-separated UUID/name array does not return the specified UUIDs and also returns more than specified. (Muliti-get)""",1,High,Database,Risk: 0.6 | Value: 7.05
+"""Implement DeadLetter counter/notification""",1,High,Database,Risk: 0.63 | Value: 7.45
+"""Matrix Parameters do not work""",1,High,Backend,Risk: 0.63 | Value: 7.45
+"""Push Notification Scalability""",1,High,Backend,Risk: 0.59 | Value: 7.0
+"""Test performance/feasibility of compression in cassandra, combined with rowcaching""",1,Medium,Testing,Risk: 0.51 | Value: 6.75
+"""Performance Characterization of Activities""",1,High,Backend,Risk: 0.63 | Value: 7.55
+"""Consider using ElasticSearch aggregation query to get a count of entities in a collection""",1,High,Database,Risk: 0.63 | Value: 7.1
+"""Admin UI does not respond after login in IE 11 """,1,Medium,Frontend,Risk: 0.52 | Value: 6.9

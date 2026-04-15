@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ApexS — Master Architecture Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c14;
+    --surface: #111420;
+    --surface2: #181c2e;
+    --border: #232840;
+    --accent: #4f6ef7;
+    --accent2: #7c3aed;
+    --green: #22d3a5;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: 260px; height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 100;
+    padding: 24px 0;
+  }
+
+  .sidebar-logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .logo-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .nav-section {
+    padding: 16px 20px 6px;
+    font-size: 9px;
+    font-family: var(--mono);
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+
+  .nav-item:hover, .nav-item.active {
+    color: var(--text);
+    background: rgba(79,110,247,0.08);
+    border-left-color: var(--accent);
+  }
+
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .nav-item.active .nav-dot { background: var(--accent); }
+
+  /* ── Main ── */
+  .main {
+    margin-left: 260px;
+    padding: 40px 48px;
+    max-width: 1100px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .hero h1 {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #e2e8f0 30%, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 560px;
+  }
+
+  .hero-pills {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 64px;
+    scroll-margin-top: 40px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .section-num {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+  }
+
+  .section-desc {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+
+  /* ── Architecture Diagram ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .arch-diagram::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(79,110,247,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .arch-layer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .arch-layer.presentation { border-color: rgba(79,110,247,0.4); background: rgba(79,110,247,0.06); }
+  .arch-layer.application  { border-color: rgba(124,58,237,0.4); background: rgba(124,58,237,0.06); }
+  .arch-layer.data         { border-color: rgba(34,211,165,0.4); background: rgba(34,211,165,0.06); }
+
+  .arch-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+
+  .presentation .arch-label { color: #818cf8; }
+  .application .arch-label  { color: #a78bfa; }
+  .data .arch-label         { color: var(--green); }
+
+  .arch-modules {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .arch-module {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .arch-arrow {
+    text-align: center;
+    color: var(--border);
+    font-size: 20px;
+    margin: 4px 0;
+  }
+
+  /* ── Tech Stack Table ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .stack-card:hover { border-color: var(--accent); }
+
+  .stack-category {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .stack-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stack-item:last-child { border-bottom: none; }
+
+  .stack-tech {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 120px;
+    padding-top: 2px;
+  }
+
+  .stack-why {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── Phase Cards ── */
+  .phase-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .phase-card:hover { border-color: rgba(79,110,247,0.5); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .phase-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .phase-info { flex: 1; }
+
+  .phase-name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .phase-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .phase-status {
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+
+  .status-p0 { background: rgba(79,110,247,0.15); color: #818cf8; }
+  .status-p1 { background: rgba(124,58,237,0.15); color: #a78bfa; }
+  .status-p2 { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .status-p3 { background: rgba(34,211,165,0.15); color: var(--green); }
+  .status-p4 { background: rgba(248,113,113,0.15); color: var(--red); }
+  .status-p5 { background: rgba(79,110,247,0.15); color: #818cf8; }
+  .status-p6 { background: rgba(34,211,165,0.2); color: var(--green); }
+
+  .phase-body {
+    padding: 0 24px 20px;
+    display: none;
+  }
+
+  .phase-body.open { display: block; }
+
+  .task-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .task-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    background: rgba(79,110,247,0.12);
+    border-radius: 4px;
+    padding: 3px 7px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .task-text {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .task-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  .milestone {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: rgba(34,211,165,0.08);
+    border: 1px solid rgba(34,211,165,0.25);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--green);
+  }
+
+  .milestone-icon { font-size: 18px; }
+
+  /* ── API Table ── */
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .api-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .api-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(35,40,64,0.6);
+    vertical-align: top;
+  }
+
+  .api-table tr:last-child td { border-bottom: none; }
+
+  .api-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .method.get    { background: rgba(34,211,165,0.15); color: var(--green); }
+  .method.post   { background: rgba(79,110,247,0.15); color: #818cf8; }
+  .method.put    { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .method.delete { background: rgba(248,113,113,0.15); color: var(--red); }
+
+  .endpoint {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: #0d0f1a;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #a0aec0;
+    overflow-x: auto;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    white-space: pre;
+  }
+
+  .kw { color: #818cf8; }
+  .fn { color: #4ade80; }
+  .st { color: #f97316; }
+  .cm { color: #475569; font-style: italic; }
+  .nm { color: #22d3a5; }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 24px;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .flow-n {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .flow-text { font-size: 13px; }
+  .flow-code { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-top: 2px; }
+
+  .flow-arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px 0;
+  }
+
+  /* ── Summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .summary-table th {
+    background: var(--surface2);
+    padding: 12px 16px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(35,40,64,0.5);
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  .row-accent { background: rgba(79,110,247,0.04); }
+
+  /* ── Progress indicator ── */
+  .progress-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 40px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .prog-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 90px;
+  }
+
+  .prog-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    z-index: 2;
+    position: relative;
+  }
+
+  .prog-circle.done {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .prog-label {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .prog-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    margin-top: -22px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">TEAM APEXS</div>
+    <div class="logo-title">Sprint Planner<br/>Master Guide</div>
+    <div class="logo-sub">BCSE301P · VIT · 2026</div>
+  </div>
+
+  <div class="nav-section">Architecture</div>
+  <div class="nav-item active" onclick="scrollTo('arch')"><div class="nav-dot"></div>System Design</div>
+  <div class="nav-item" onclick="scrollTo('stack')"><div class="nav-dot"></div>Tech Stack</div>
+  <div class="nav-item" onclick="scrollTo('api')"><div class="nav-dot"></div>API & Data Flow</div>
+
+  <div class="nav-section">Roadmap</div>
+  <div class="nav-item" onclick="scrollTo('phases')"><div class="nav-dot"></div>Phase Overview</div>
+  <div class="nav-item" onclick="scrollTo('p0')"><div class="nav-dot"></div>Phase 0 — Setup</div>
+  <div class="nav-item" onclick="scrollTo('p1')"><div class="nav-dot"></div>Phase 1 — Data</div>
+  <div class="nav-item" onclick="scrollTo('p2')"><div class="nav-dot"></div>Phase 2 — ILP Engine</div>
+  <div class="nav-item" onclick="scrollTo('p3')"><div class="nav-dot"></div>Phase 3 — Explain</div>
+  <div class="nav-item" onclick="scrollTo('p4')"><div class="nav-dot"></div>Phase 4 — Frontend</div>
+  <div class="nav-item" onclick="scrollTo('p5')"><div class="nav-dot"></div>Phase 5 — Testing</div>
+  <div class="nav-item" onclick="scrollTo('p6')"><div class="nav-dot"></div>Phase 6 — Deploy</div>
+  <div class="nav-section">Reference</div>
+  <div class="nav-item" onclick="scrollTo('summary')"><div class="nav-dot"></div>Build Order</div>
+  <div class="nav-item" onclick="scrollTo('impl')"><div class="nav-dot"></div>Implementation Status</div>
+</nav>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">// MASTER ARCHITECTURE GUIDE v1.1</div>
+    <h1>Build Guide: Explainable<br/>Context-Aware Sprint Planner</h1>
+    <p class="hero-sub">Everything you need to go from zero to a deployed, research-grade sprint planning system. Architecture decisions, technology choices, API design, and a step-by-step development roadmap.</p>
+    <div class="hero-pills">
+      <span class="pill">FastAPI</span>
+      <span class="pill">React 18</span>
+      <span class="pill">PostgreSQL</span>
+      <span class="pill">PuLP ILP Solver</span>
+      <span class="pill">SHAP Explainability</span>
+      <span class="pill">Celery + Redis</span>
+      <span class="pill">Docker</span>
+    </div>
+  </div>
+
+  <!-- Section 1: Architecture -->
+  <div class="section" id="arch">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <div>
+        <div class="section-title">High-Level System Design</div>
+        <div class="section-desc">Five-layer pipeline — data flows in, intelligence flows out</div>
+      </div>
+    </div>
+
+    <div class="arch-diagram">
+      <div class="arch-layer presentation">
+        <div class="arch-label">▸ Presentation Layer</div>
+        <div class="arch-modules">
+          <div class="arch-module">Dashboard</div>
+          <div class="arch-module">Dataset Upload</div>
+          <div class="arch-module">Sprint Config</div>
+          <div class="arch-module">Sprint Plan View</div>
+          <div class="arch-module">Explainability Panel</div>
+          <div class="arch-module">Plan Approval</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↕ REST API (JSON / HTTPS)</div>
+      <div class="arch-layer application">
+        <div class="arch-label">▸ Application Layer</div>
+        <div class="arch-modules">
+          <div class="arch-module">Context Extractor</div>
+          <div class="arch-module">Weight Learning (scikit-learn)</div>
+          <div class="arch-module">Optimization Engine (PuLP ILP)</div>
+          <div class="arch-module">Explainability Engine (SHAP)</div>
+          <div class="arch-module">Celery Task Queue</div>
+        </div>
+      </div>
+      <div class="arch-arrow">↕ SQLAlchemy ORM / MinIO SDK</div>
+      <div class="arch-layer data">
+        <div class="arch-label">▸ Data Layer</div>
+        <div class="arch-modules">
+          <div class="arch-module">PostgreSQL 15</div>
+          <div class="arch-module">Redis 7 (Cache + Queue)</div>
+          <div class="arch-module">MinIO (File Storage)</div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:13px; color:var(--muted); margin-bottom:16px;">
+      <strong style="color:var(--text)">Key principle:</strong> Each layer only speaks to its adjacent layer. The Optimization Engine runs asynchronously via Celery — the frontend polls for results so the UI never blocks.
+    </p>
+  </div>
+
+  <!-- Section 2: Stack -->
+  <div class="section" id="stack">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <div>
+        <div class="section-title">Technology Stack</div>
+        <div class="section-desc">Every tool chosen for a specific reason — no cargo culting</div>
+      </div>
+    </div>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="stack-category">Frontend</div>
+        <div class="stack-item">
+          <div class="stack-tech">React 18 + TS</div>
+          <div class="stack-why">Component reuse, type safety, huge ecosystem for data tables & charts</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Zustand</div>
+          <div class="stack-why">Lightweight state for sprint plan workflow (no Redux boilerplate)</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">shadcn/ui</div>
+          <div class="stack-why">Unstyled primitives → full control over UI matching Pencil mockups</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">React Query</div>
+          <div class="stack-why">Auto-polling for optimization job status (2s refetch interval)</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Recharts + D3</div>
+          <div class="stack-why">Value vs Risk scatter chart, capacity bars, velocity trend</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Vite</div>
+          <div class="stack-why">Sub-second hot reload for rapid UI development</div>
+        </div>
+      </div>
+
+      <div class="stack-card">
+        <div class="stack-category">Backend</div>
+        <div class="stack-item">
+          <div class="stack-tech">FastAPI</div>
+          <div class="stack-why">Async-native, auto OpenAPI docs, perfect for ML pipeline integration</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">PuLP + CBC</div>
+          <div class="stack-why">Free, open-source ILP solver — handles your knapsack + dependency constraints exactly</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">scikit-learn</div>
+          <div class="stack-why">Ridge Regression learns team-specific prioritization weights from sprint history</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">SHAP</div>
+          <div class="stack-why">Model-agnostic feature attribution for explainability output</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Celery + Redis</div>
+          <div class="stack-why">Async job queue — optimization runs in background worker, UI polls status</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">SQLAlchemy 2</div>
+          <div class="stack-why">ORM with Alembic migrations — version-controlled database schema</div>
+        </div>
+      </div>
+
+      <div class="stack-card">
+        <div class="stack-category">Data & Storage</div>
+        <div class="stack-item">
+          <div class="stack-tech">PostgreSQL 15</div>
+          <div class="stack-why">ACID-compliant, array columns for story dependencies, full-text search</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Redis 7</div>
+          <div class="stack-why">Celery broker + API response caching for fast repeated queries</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">MinIO</div>
+          <div class="stack-why">Self-hosted S3 for CSV/JSON dataset uploads — no AWS costs for lab</div>
+        </div>
+      </div>
+
+      <div class="stack-card">
+        <div class="stack-category">Infrastructure</div>
+        <div class="stack-item">
+          <div class="stack-tech">Docker Compose</div>
+          <div class="stack-why">Single command spins up all 6 services — reproducible for every team member</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">GitHub Actions</div>
+          <div class="stack-why">Auto-run pytest on every push — catches regressions immediately</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Railway.app</div>
+          <div class="stack-why">Free tier deployment with one-click PostgreSQL + Redis — no DevOps needed</div>
+        </div>
+        <div class="stack-item">
+          <div class="stack-tech">Swagger UI</div>
+          <div class="stack-why">Auto-generated from FastAPI — team can test all endpoints without Postman</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: API Flow -->
+  <div class="section" id="api">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <div>
+        <div class="section-title">Core Data Flow</div>
+        <div class="section-desc">How a click becomes an optimized sprint plan</div>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-n">1</div>
+        <div>
+          <div class="flow-text">User uploads historical sprint CSV</div>
+          <div class="flow-code">POST /api/v1/datasets/upload → validate schema → store MinIO → save metadata to DB</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">2</div>
+        <div>
+          <div class="flow-text">User configures sprint (goal, capacity, risk threshold, skills)</div>
+          <div class="flow-code">POST /api/v1/sprints/  +  POST /api/v1/stories/ (bulk)</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">3</div>
+        <div>
+          <div class="flow-text">User clicks "Generate Sprint Plan" → triggers async Celery job</div>
+          <div class="flow-code">POST /api/v1/plans/generate → returns job_id immediately</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">4</div>
+        <div>
+          <div class="flow-text">Celery Worker: ContextExtractor → WeightLearning → ILP Solver → ExplainabilityEngine</div>
+          <div class="flow-code">Each step updates state: 20% → 40% → 60% → 80% → 100%</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">5</div>
+        <div>
+          <div class="flow-text">Frontend polls job status every 2 seconds</div>
+          <div class="flow-code">GET /api/v1/plans/status/{job_id} → {status, progress, step}</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">6</div>
+        <div>
+          <div class="flow-text">Plan ready → fetch plan + explanations → render Sprint Plan screen</div>
+          <div class="flow-code">GET /api/v1/plans/{plan_id}  +  GET /api/v1/plans/{plan_id}/explain</div>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-n">7</div>
+        <div>
+          <div class="flow-text">User approves → exports Jira-compatible CSV</div>
+          <div class="flow-code">PUT /api/v1/plans/{plan_id}/approve  →  POST /api/v1/plans/{plan_id}/export</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <div style="font-size:13px; font-weight:600; margin-bottom:14px; color:var(--muted); font-family:var(--mono); letter-spacing:1px; text-transform:uppercase;">KEY API ENDPOINTS</div>
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/v1/datasets/upload</td><td>Upload & validate CSV dataset</td></tr>
+          <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/v1/sprints/</td><td>Create sprint with configuration</td></tr>
+          <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/v1/plans/generate</td><td>🔑 Trigger async optimization pipeline</td></tr>
+          <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/v1/plans/status/{job_id}</td><td>Poll optimization progress (2s interval)</td></tr>
+          <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/v1/plans/{plan_id}</td><td>Fetch complete sprint plan</td></tr>
+          <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/v1/plans/{plan_id}/explain</td><td>All story explanations</td></tr>
+          <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/v1/plans/{plan_id}/explain/{story_id}</td><td>Single story explanation</td></tr>
+          <tr><td><span class="method put">PUT</span></td><td class="endpoint">/api/v1/plans/{plan_id}/approve</td><td>Mark plan as approved</td></tr>
+          <tr><td><span class="method post">POST</span></td><td class="endpoint">/api/v1/plans/{plan_id}/export</td><td>Download Jira-compatible CSV</td></tr>
+          <tr><td><span class="method get">GET</span></td><td class="endpoint">/api/v1/reports/{team_id}/metrics</td><td>Velocity, risk trend, plan quality</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 4: Phase Overview -->
+  <div class="section" id="phases">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <div>
+        <div class="section-title">Development Roadmap</div>
+        <div class="section-desc">8-week phased build plan with milestones</div>
+      </div>
+    </div>
+
+    <div class="progress-track">
+      <div class="prog-step"><div class="prog-circle done">P0</div><div class="prog-label">Setup</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P1</div><div class="prog-label">Data</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P2</div><div class="prog-label">ILP</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P3</div><div class="prog-label">Explain</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P4</div><div class="prog-label">UI</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P5</div><div class="prog-label">Tests</div></div>
+      <div class="prog-line"></div>
+      <div class="prog-step"><div class="prog-circle done">P6</div><div class="prog-label">Deploy</div></div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr><th>Phase</th><th>Name</th><th>Duration</th><th>Goal</th></tr>
+      </thead>
+      <tbody>
+        <tr class="row-accent"><td><span class="phase-status status-p0">PHASE 0</span></td><td>Project Setup & Foundation</td><td>Week 1</td><td>Docker, DB schema, project scaffolding ready</td></tr>
+        <tr><td><span class="phase-status status-p1">PHASE 1</span></td><td>Data Ingestion & Context Module</td><td>Week 2</td><td>Upload CSV, validate, extract context & learn weights</td></tr>
+        <tr class="row-accent"><td><span class="phase-status status-p2">PHASE 2</span></td><td>Core ILP Optimization Engine</td><td>Week 3</td><td>ILP solver working end-to-end with all 4 constraints</td></tr>
+        <tr><td><span class="phase-status status-p3">PHASE 3</span></td><td>Explainability Module</td><td>Week 4</td><td>Per-story reasons, confidence scores, rejection causes</td></tr>
+        <tr class="row-accent"><td><span class="phase-status status-p4">PHASE 4</span></td><td>Frontend — All 7 Screens</td><td>Week 5–6</td><td>Full UI matching Pencil prototype, wired to live APIs</td></tr>
+        <tr><td><span class="phase-status status-p5">PHASE 5</span></td><td>Integration & Testing</td><td>Week 7</td><td>All 14 test cases pass, F1–F8 requirements verified</td></tr>
+        <tr class="row-accent"><td><span class="phase-status status-p6">PHASE 6</span></td><td>Polish, Reports & Deploy</td><td>Week 8</td><td>Deployed to public URL, demo-ready, export working</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Phases Detail -->
+  <div class="section" id="p0">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #4f6ef7, #7c3aed)">P0</div>
+      <div>
+        <div class="section-title">Phase 0: Project Setup & Foundation</div>
+        <div class="section-desc">Week 1 · Get every team member working in the same environment</div>
+      </div>
+    </div>
+
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">Setup Tasks — Click to expand</div>
+            <div class="phase-meta">5 tasks · Docker, FastAPI skeleton, Frontend init, DB migrations</div>
+          </div>
+          <span class="phase-status status-p0">WEEK 1</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">0.1</div><div><div class="task-text">Create monorepo structure: /backend/app/{api,services,workers,models} + /frontend/src/{pages,components,hooks,store}</div></div></li>
+            <li class="task-item"><div class="task-num">0.2</div><div><div class="task-text">Write docker-compose.yml with all 6 services: PostgreSQL, Redis, MinIO, FastAPI, Celery Worker, React frontend</div><div class="task-sub">docker compose up → everything runs on first try</div></div></li>
+            <li class="task-item"><div class="task-num">0.3</div><div><div class="task-text">Initialize FastAPI app with all route prefixes (/api/v1/...) and CORS configured for localhost:5173</div></div></li>
+            <li class="task-item"><div class="task-num">0.4</div><div><div class="task-text">Write SQLAlchemy models for all 8 entities → run Alembic migration → verify tables created in PostgreSQL</div><div class="task-sub">alembic revision --autogenerate -m "initial" && alembic upgrade head</div></div></li>
+            <li class="task-item"><div class="task-num">0.5</div><div><div class="task-text">Init React with Vite + TypeScript + Tailwind + shadcn/ui → verify frontend loads at localhost:5173</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> docker compose up starts all services. FastAPI docs at :8000/docs. DB tables created. Frontend loads.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p1">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #7c3aed, #6d28d9)">P1</div>
+      <div>
+        <div class="section-title">Phase 1: Data Ingestion & Context Extraction</div>
+        <div class="section-desc">Week 2 · Upload CSV → validate → extract context → learn weights</div>
+      </div>
+    </div>
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">Data Pipeline Tasks — Click to expand</div>
+            <div class="phase-meta">5 tasks · Dataset upload API, ContextExtractor, WeightLearningModel, Upload UI</div>
+          </div>
+          <span class="phase-status status-p1">WEEK 2</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">1.1</div><div><div class="task-text">Define expected CSV schema: story_id, title, story_points, business_value, risk_score, required_skill, sprint_id, sprint_completed, depends_on</div></div></li>
+            <li class="task-item"><div class="task-num">1.2</div><div><div class="task-text">Build POST /datasets/upload endpoint: Pydantic validation → pandas read → MinIO store → DB metadata save → return preview (first 10 rows)</div></div></li>
+            <li class="task-item"><div class="task-num">1.3</div><div><div class="task-text">Write ContextExtractor service: compute team velocity, completion rate, skill distribution, avg risk tolerance from historical data</div></div></li>
+            <li class="task-item"><div class="task-num">1.4</div><div><div class="task-text">Write WeightLearningModel: Ridge Regression on (story_points, business_value, risk_score) → normalized weights (urgency, value, alignment)</div></div></li>
+            <li class="task-item"><div class="task-num">1.5</div><div><div class="task-text">Build Dataset Upload UI: drag-and-drop zone (react-dropzone), preview table (TanStack Table), validation badge, upload progress bar</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> A CSV file can be uploaded, validated, previewed, and the API returns a Context object with learned urgency/value/alignment weights.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p2">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #b45309, #d97706)">P2</div>
+      <div>
+        <div class="section-title">Phase 2: Core ILP Optimization Engine</div>
+        <div class="section-desc">Week 3 · The heart of the research contribution</div>
+      </div>
+    </div>
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">ILP Solver Tasks — Click to expand</div>
+            <div class="phase-meta">4 tasks · PuLP ILP, 4 constraints, Celery async, Polling API, Processing UI</div>
+          </div>
+          <span class="phase-status status-p2">WEEK 3</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">2.1</div><div><div class="task-text">Implement OptimizationEngine with PuLP: binary decision variables x_i, objective function (weighted value), 4 constraints: C1=Capacity, C2=Risk threshold, C3=Skill compatibility, C4=Dependencies</div><div class="task-sub">Core formula: maximize Σ(w_value·v_i + w_urgency·(10-sp_i) + w_align·(1-r_i))·x_i subject to all 4 constraints</div></div></li>
+            <li class="task-item"><div class="task-num">2.2</div><div><div class="task-text">Wire optimization into Celery async task: ContextExtractor → WeightLearning → OptimizationEngine pipeline with progress updates at each step</div></div></li>
+            <li class="task-item"><div class="task-num">2.3</div><div><div class="task-text">Build POST /plans/generate (returns job_id) + GET /plans/status/{job_id} polling endpoint with progress percentage and current step name</div></div></li>
+            <li class="task-item"><div class="task-num">2.4</div><div><div class="task-text">Build Optimization Processing UI: animated progress bar, step checklist (matching Figure 4 in prototype), auto-redirect when done</div><div class="task-sub">React Query usePlanStatus hook with refetchInterval: 2000ms</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> Clicking "Generate Sprint Plan" runs ILP. Processing screen shows real-time steps. Optimal story list is saved to DB with correct constraint enforcement.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p3">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #059669, #10b981)">P3</div>
+      <div>
+        <div class="section-title">Phase 3: Explainability Engine</div>
+        <div class="section-desc">Week 4 · Why was each story selected or rejected?</div>
+      </div>
+    </div>
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">Explainability Tasks — Click to expand</div>
+            <div class="phase-meta">3 tasks · ExplainabilityEngine, explanation API, Explainability Panel UI</div>
+          </div>
+          <span class="phase-status status-p3">WEEK 4</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">3.1</div><div><div class="task-text">Write ExplainabilityEngine: for each selected story compute value_contribution, risk_impact, alignment_score, confidence_score + build natural language reason string. For each rejected story, determine rejection cause (risk/capacity/skill/priority)</div></div></li>
+            <li class="task-item"><div class="task-num">3.2</div><div><div class="task-text">Build GET /plans/{plan_id}/explain (all stories) + GET /plans/{plan_id}/explain/{story_id} (single story) endpoints. Return structured JSON: {storyId, reason, contributionBreakdown, confidenceScore, is_selected}</div></div></li>
+            <li class="task-item"><div class="task-num">3.3</div><div><div class="task-text">Build Explainability Panel UI: story selector dropdown, reason card, contribution breakdown bar chart (Recharts), confidence score meter, Value vs Risk scatter plot (D3), rejected stories panel with reasons</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> Every selected and rejected story has a human-readable explanation. Confidence scores computed. Explainability Panel renders all charts correctly.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p4">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #dc2626, #ef4444)">P4</div>
+      <div>
+        <div class="section-title">Phase 4: Frontend — All 7 Screens</div>
+        <div class="section-desc">Weeks 5–6 · Match every screen from the Pencil prototype, wired to live APIs</div>
+      </div>
+    </div>
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">Frontend Screen Build Order — Click to expand</div>
+            <div class="phase-meta">8 tasks · App shell, routing, state, 7 screens in order</div>
+          </div>
+          <span class="phase-status status-p4">WEEKS 5–6</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">4.1</div><div><div class="task-text">Set up React Router v6 with all 7 routes: Dashboard → Upload → Configure → Optimizing/:jobId → Plan/:planId → Explain/:planId → Approve/:planId</div></div></li>
+            <li class="task-item"><div class="task-num">4.2</div><div><div class="task-text">Create Zustand store with teamId, uploadId, sprintId, planId, currentJobId — shared across all screens</div></div></li>
+            <li class="task-item"><div class="task-num">4.3</div><div><div class="task-text">Screen 1: Dashboard — 4 nav cards (Upload, Configure, Generate, View Plans) + System Overview stats table</div></div></li>
+            <li class="task-item"><div class="task-num">4.4</div><div><div class="task-text">Screen 2: Dataset Upload — dropzone + preview table + validation badge (matches Figure 2)</div></div></li>
+            <li class="task-item"><div class="task-num">4.5</div><div><div class="task-text">Screen 3: Sprint Configuration — sprint goal input, capacity number field, risk threshold slider (0.0–1.0), skill checkboxes (matches Figure 3)</div></div></li>
+            <li class="task-item"><div class="task-num">4.6</div><div><div class="task-text">Screen 4: Optimization Processing — animated progress bar, step checklist with live status (matches Figure 4)</div></div></li>
+            <li class="task-item"><div class="task-num">4.7</div><div><div class="task-text">Screen 5: Generated Sprint Plan — summary header (goal, capacity, used, count) + sortable story table + View Explainability / Modify buttons (matches Figure 5)</div></div></li>
+            <li class="task-item"><div class="task-num">4.8</div><div><div class="task-text">Screen 6+7: Explainability Panel + Sprint Plan Approval — story selector, contribution bars, scatter chart, rejected stories panel, approve/export buttons (matches Figures 6–7)</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> All 7 screens render with real data. Full workflow Dashboard→Upload→Configure→Optimize→Plan→Explain→Approve is clickable end-to-end.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="p5">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #4f6ef7, #06b6d4)">P5</div>
+      <div>
+        <div class="section-title">Phase 5: Integration & Testing</div>
+        <div class="section-desc">Week 7 · Verify F1–F8 requirements. Run all 14 test cases.</div>
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr><th>Test ID</th><th>Requirement</th><th>What's Tested</th><th>Component</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>TC-001</td><td>F1</td><td>Valid CSV upload (5 cols, 10 rows) → success</td><td>Dataset API</td></tr>
+        <tr><td>TC-002</td><td>F1</td><td>Invalid CSV (missing business_value) → 400 error</td><td>Dataset API</td></tr>
+        <tr><td>TC-003</td><td>F2</td><td>Context extraction returns non-null weights</td><td>ContextExtractor</td></tr>
+        <tr><td>TC-004</td><td>F3</td><td>Weight model trained on 10+ sprint records</td><td>WeightLearning</td></tr>
+        <tr><td>TC-005</td><td>F4</td><td>Selected stories total ≤ capacity</td><td>OptimizationEngine</td></tr>
+        <tr><td>TC-006</td><td>F5</td><td>Story with risk 0.95 excluded when threshold=0.7</td><td>OptimizationEngine</td></tr>
+        <tr><td>TC-007</td><td>F5</td><td>Child story excluded if parent story not in backlog</td><td>OptimizationEngine</td></tr>
+        <tr><td>TC-008</td><td>F6</td><td>All selected stories have explanation + confidence > 0</td><td>ExplainabilityEngine</td></tr>
+        <tr><td>TC-009</td><td>F6</td><td>All rejected stories have non-null rejection_reason</td><td>ExplainabilityEngine</td></tr>
+        <tr><td>TC-010</td><td>F7</td><td>Modified plan re-runs optimizer with new constraints</td><td>Plans API</td></tr>
+        <tr><td>TC-011</td><td>F8</td><td>Export generates valid Jira-compatible CSV</td><td>Plans API</td></tr>
+        <tr><td>TC-012</td><td>F4</td><td>Empty backlog returns warning, not 500 error</td><td>OptimizationEngine</td></tr>
+        <tr><td>TC-013</td><td>NFR</td><td>Plan generation completes within 30 seconds</td><td>Celery task</td></tr>
+        <tr><td>TC-014</td><td>NFR</td><td>Concurrent uploads from 2 users don't interfere</td><td>API load test</td></tr>
+      </tbody>
+    </table>
+
+    <div class="milestone"><span class="milestone-icon">✅</span><span><strong>Milestone:</strong> All 14 test cases pass. No critical bugs. API response times under 500ms for non-optimization endpoints. GitHub Actions CI is green.</span></div>
+  </div>
+
+  <div class="section" id="p6">
+    <div class="section-header">
+      <div class="section-num" style="background: linear-gradient(135deg, #22d3a5, #0891b2)">P6</div>
+      <div>
+        <div class="section-title">Phase 6: Polish, Reports & Deployment</div>
+        <div class="section-desc">Week 8 · Final report, demo-ready, deployed to public URL</div>
+      </div>
+    </div>
+    <div class="phase-list">
+      <div class="phase-card">
+        <div class="phase-header" onclick="togglePhase(this)">
+          <div class="phase-badge">TASKS</div>
+          <div class="phase-info">
+            <div class="phase-name">Polish & Deploy Tasks — Click to expand</div>
+            <div class="phase-meta">5 tasks · Metrics dashboard, Jira CSV export, Docker prod build, Railway deploy, CI</div>
+          </div>
+          <span class="phase-status status-p6">WEEK 8</span>
+        </div>
+        <div class="phase-body">
+          <ul class="task-list">
+            <li class="task-item"><div class="task-num">6.1</div><div><div class="task-text">Build Reporting Dashboard: velocity trend (line chart), value delivered per sprint (bar), risk profile comparison (selected vs rejected), weight evolution over time</div></div></li>
+            <li class="task-item"><div class="task-num">6.2</div><div><div class="task-text">Implement POST /plans/{plan_id}/export: generate Jira-compatible CSV with Summary, Story Points, Priority, Labels, Description columns → StreamingResponse download</div></div></li>
+            <li class="task-item"><div class="task-num">6.3</div><div><div class="task-text">Build docker-compose.prod.yml with nginx reverse proxy, environment variable secrets, restart policies</div></div></li>
+            <li class="task-item"><div class="task-num">6.4</div><div><div class="task-text">Deploy to Railway.app: link PostgreSQL + Redis plugins, set all env vars, verify at public URL</div><div class="task-sub">railway login → railway init → railway up</div></div></li>
+            <li class="task-item"><div class="task-num">6.5</div><div><div class="task-text">Set up GitHub Actions: pytest runs on every push, build must pass before merge to main</div></div></li>
+          </ul>
+          <div class="milestone"><span class="milestone-icon">🚀</span><span><strong>Final Milestone:</strong> System live at public URL. All tests green in CI. Export to Jira CSV works. Demo runs end-to-end in under 5 minutes.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section" id="summary">
+    <div class="section-header">
+      <div class="section-num">★</div>
+      <div>
+        <div class="section-title">Build Priority Order</div>
+        <div class="section-desc">Exactly what to build first, second, and third</div>
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr><th>#</th><th>What to Build</th><th>Why This Order</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong style="color:var(--accent)">1</strong></td><td>Docker Compose + DB Schema</td><td>Everything else depends on this foundation</td></tr>
+        <tr><td><strong style="color:var(--accent)">2</strong></td><td>FastAPI skeleton + all empty routes</td><td>Establishes API contract before any logic</td></tr>
+        <tr><td><strong style="color:var(--accent)">3</strong></td><td>ContextExtractor + WeightLearning</td><td>Foundation of the intelligence pipeline</td></tr>
+        <tr><td><strong style="color:var(--accent)">4</strong></td><td>OptimizationEngine (ILP with PuLP)</td><td>Core research contribution — most novel part</td></tr>
+        <tr><td><strong style="color:var(--accent)">5</strong></td><td>ExplainabilityEngine</td><td>Differentiates from base paper — key novelty</td></tr>
+        <tr><td><strong style="color:var(--accent)">6</strong></td><td>Celery async pipeline</td><td>Ties modules 3+4+5 into one flow</td></tr>
+        <tr><td><strong style="color:var(--accent)">7</strong></td><td>Dataset Upload UI</td><td>First user-facing feature — visible progress</td></tr>
+        <tr><td><strong style="color:var(--accent)">8</strong></td><td>Sprint Config + Processing screens</td><td>Completes the input side of the workflow</td></tr>
+        <tr><td><strong style="color:var(--accent)">9</strong></td><td>Sprint Plan + Explainability UI</td><td>Main output screens — your showcase feature</td></tr>
+        <tr><td><strong style="color:var(--accent)">10</strong></td><td>Approval + Export to Jira CSV</td><td>Closes the complete workflow loop</td></tr>
+        <tr><td><strong style="color:var(--accent)">11</strong></td><td>Full test suite (14 test cases)</td><td>Validates F1–F8 requirements systematically</td></tr>
+        <tr><td><strong style="color:var(--accent)">12</strong></td><td>Deploy + GitHub Actions CI</td><td>Submission-ready, publicly accessible URL</td></tr>
+      </tbody>
+    </table>
+
+    <div style="background: var(--surface); border: 1px solid rgba(79,110,247,0.3); border-radius: 14px; padding: 24px; margin-top: 8px;">
+      <div style="font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 12px;">// ONE COMMAND TO START</div>
+      <div class="code-block"><span class="cm"># After cloning the repo:</span>
+<span class="kw">cp</span> .env.example .env
+<span class="kw">docker compose up</span> --build
+
+<span class="cm"># Services start on:</span>
+<span class="nm">Frontend  </span>→  http://localhost:5173
+<span class="nm">API       </span>→  http://localhost:8000
+<span class="nm">API Docs  </span>→  http://localhost:8000/docs
+<span class="nm">MinIO UI  </span>→  http://localhost:9001</div>
+    </div>
+  </div>
+
+  <div class="section" id="impl">
+    <div class="section-header">
+      <div class="section-num">✔</div>
+      <div>
+        <div class="section-title">Implementation Status (Current)</div>
+        <div class="section-desc">Repository-aligned verification snapshot for final reporting</div>
+      </div>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr><th>Checklist Stage</th><th>Status</th><th>Observed Result</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Stage 0: Environment</td><td><span class="phase-status status-p6">PASS</span></td><td>All services healthy; frontend, backend, docs and MinIO console reachable</td></tr>
+        <tr class="row-accent"><td>Stage 1: Upload</td><td><span class="phase-status status-p6">PASS</span></td><td>Upload returns upload_id, rows, preview; team dataset listing works</td></tr>
+        <tr><td>Stage 2: Configuration</td><td><span class="phase-status status-p6">PASS</span></td><td>Sprint create + plan generate returns valid job_id and routes to processing screen</td></tr>
+        <tr class="row-accent"><td>Stage 3: Processing</td><td><span class="phase-status status-p6">PASS</span></td><td>Status transitions through loading/extracting/learning/optimizing/explaining/done with plan_id</td></tr>
+        <tr><td>Stage 4-5: Plan & Quality</td><td><span class="phase-status status-p6">PASS</span></td><td>Plan totals render; quality checks validate risk, skills, dependencies and duplicates</td></tr>
+        <tr class="row-accent"><td>Stage 6: Explainability</td><td><span class="phase-status status-p6">PASS</span></td><td>Selected and rejected explanations displayed with reasons and confidence/contribution fields</td></tr>
+        <tr><td>Stage 7-8: Approval & Export</td><td><span class="phase-status status-p6">PASS</span></td><td>Approval persists status; CSV/JSON export matches selected stories</td></tr>
+        <tr class="row-accent"><td>Stage 9: Regression Rerun</td><td><span class="phase-status status-p6">PASS</span></td><td>Modify flow creates new plan_id and tighter constraints change selected set logically</td></tr>
+      </tbody>
+    </table>
+
+    <div style="background: var(--surface); border: 1px solid rgba(79,110,247,0.3); border-radius: 14px; padding: 24px; margin-top: 8px;">
+      <div style="font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-bottom: 12px;">// VALIDATION COMMANDS</div>
+      <div class="code-block"><span class="cm"># service health</span>
+<span class="kw">docker compose ps</span>
+
+<span class="cm"># backend + integration tests (active root suite)</span>
+<span class="kw">pytest -q</span>
+
+<span class="cm"># frontend production build</span>
+<span class="kw">cd frontend && npm run build</span></div>
+    </div>
+  </div>
+
+  <div style="text-align:center; padding: 48px 0 80px; color: var(--muted); font-family: var(--mono); font-size: 11px;">
+    TEAM APEXS · BCSE301P · EXPLAINABLE CONTEXT-AWARE SPRINT PLANNING SYSTEM<br/>
+    Architecture Guide v1.1 · Aligned with SRS (F1–F8) and SDS (IEEE Std 1016)
+  </div>
+
+</div>
+
+<script>
+  function scrollTo(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const activeItem = Array.from(document.querySelectorAll('.nav-item')).find(
+      (n) => n.getAttribute('onclick')?.includes(`'${id}'`)
+    );
+    if (activeItem) activeItem.classList.add('active');
+  }
+
+  function togglePhase(header) {
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  }
+
+  // Open first phase body by default
+  document.querySelectorAll('.phase-body').forEach((b, i) => {
+    if (i === 0) b.classList.add('open');
+  });
+
+  // Intersection observer for nav highlighting
+  const sections = document.querySelectorAll('.section[id]');
+  const navItems = document.querySelectorAll('.nav-item');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navItems.forEach(n => {
+          n.classList.toggle('active', n.getAttribute('onclick')?.includes(id));
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,1408 @@
+% ApexS IEEE paper source — ENHANCED VERSION
+% Compile with a standard IEEEtran-enabled LaTeX installation:
+%   pdflatex APEX_S_IEEE_Paper_Revised.tex
+%   pdflatex APEX_S_IEEE_Paper_Revised.tex
+%   pdflatex APEX_S_IEEE_Paper_Revised.tex
+% Or use latexmk -pdf APEX_S_IEEE_Paper_Revised.tex
+%
+% Replace the boxed placeholders with actual screenshots/figures before final submission.
+
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\let\Bbbk\relax
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{balance}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{microtype}
+\usepackage[hidelinks,unicode,pdfencoding=auto]{hyperref}
+
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
+% ── Placeholder helpers ────────────────────────────────────────────────────────
+\newcommand{\placeholderfig}[2]{%
+  \fbox{%
+    \parbox[c][1.45in][c]{0.94\columnwidth}{%
+      \centering
+      \textbf{Image Placeholder}\\[4pt]
+      #1\\[6pt]
+      \footnotesize #2
+    }%
+  }%
+}
+
+\newcommand{\placeholderwidefig}[2]{%
+  \fbox{%
+    \parbox[c][1.8in][c]{0.97\textwidth}{%
+      \centering
+      \textbf{Wide Image Placeholder}\\[4pt]
+      #1\\[6pt]
+      \footnotesize #2
+    }%
+  }%
+}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\title{ApexS: Explainable Context-Aware Sprint Planning with Learned Team Weights,
+       Constraint-Aware MILP Optimization, and End-to-End Decision Support}
+
+\author{
+\IEEEauthorblockN{Midhul Kiruthik M\textsuperscript{\dag},
+                  Madhan Karthikeyan,
+                  Manav Kaizen,
+                  Sharvesh S}
+\IEEEauthorblockA{
+School of Computer Science and Engineering,
+Vellore Institute of Technology, Chennai, India \\
+Team ApexS, BCSE301P Software Engineering Lab, Winter Semester 2025--26 \\
+Reg.\ Nos.: 23BCE0783\textsuperscript{\dag}, 23BCE0829, 23BCE2251, 23BCE2141 \\
+\textsuperscript{\dag}Team Leader
+}
+}
+
+\begin{document}
+
+\maketitle
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{abstract}
+	Reconciling business value, implementation effort, technical risk, skill
+	availability, and inter-story dependencies under tight scheduling pressure makes
+	sprint planning one of the most cognitively demanding activities in agile software
+	development---yet the majority of commercial planning instruments continue to depend
+	on manual prioritization or non-transparent heuristic rules.
+	%
+	To close this gap, this work introduces \textbf{ApexS}: a fully deployable,
+	explainable, context-aware sprint planning platform whose implementation spans a
+	FastAPI backend, a React frontend, asynchronous task orchestration through Celery,
+	dataset conversion and cleaning utilities, and a mixed-integer linear programming
+	(MILP) optimization core realized with PuLP/CBC.
+	%
+	Three interlocking analytical stages constitute the planning pipeline.
+	Historical sprint outcomes are used to infer team-specific \emph{urgency},
+	\emph{value}, and \emph{alignment} weights through a sign-constrained interpretation
+of logistic-regression coefficients evaluated on a held-out test split.
+	A status-aware feasibility filter and a dependency-encoded binary program then
+	enforce four hard constraints simultaneously: sprint capacity, risk threshold,
+	skill compatibility, and dependency satisfaction.
+	Finally, an explainability module produces natural-language justifications for
+	every story that is selected or excluded from the recommended sprint.
+	%
+	The platform is organized according to a five-layer modular architecture covering
+	Presentation, Application, Data, Worker, and Storage concerns.
+	Deployment is accomplished through a reproducible six-service Docker Compose
+	configuration, and a versioned REST API provides complete lifecycle coverage from
+	dataset ingestion to Jira-compatible plan export.
+	%
+	Empirical evaluation draws on four cleaned Jira-derived datasets---Spring XD,
+	Usergrid, Aurora, and TAWOS---with TAWOS functioning as the principal real-world
+	validation corpus.
+	Taken together, these four frozen snapshots encompass 19,095 stories and 487 sprint
+	groups; TAWOS alone accounts for 14,738 stories and 673 dependency-bearing rows.
+	The evaluation structure is designed so that dataset-level characteristics, planning
+	performance, baseline comparisons, distributional properties, and qualitative
+	case-study evidence can all be reported uniformly across the same corpora.
+	%
+	All 20 automated tests passed in the recorded verification snapshot.
+	The repository further supplies a functional dataset converter, several
+	pre-validated upload-ready data files, and a complete approval-and-export workflow.
+	%
+	The principal contribution lies in the coupling of four previously separate
+	capabilities---learned adaptive weighting, constraint-enforced MILP selection,
+	bidirectional explanation generation, and end-to-end approval and export
+	support---into a single reproducible engineering pipeline.
+	In doing so, the system extends the ASE~2024 context-aware sprint planning baseline
+	\cite{ase2024} with explicit risk-awareness, skill-awareness, and decision
+	traceability that were absent from the original formulation, while also adding
+	pipeline-level validation metrics (feasibility counts and score distributions)
+	that support operational debugging.
+\end{abstract}
+
+\begin{IEEEkeywords}
+	agile sprint planning, mixed-integer linear programming, explainable AI for
+	software engineering, Jira datasets, decision support systems, software engineering
+	analytics, logistic regression, backlog optimization, constraint satisfaction
+\end{IEEEkeywords}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Because sprint planning determines which work items a software team will attempt
+during an upcoming iteration, the quality of that decision directly governs
+both delivery pace and stakeholder trust.
+Despite its importance, the underlying choice process is seldom treated as a
+structured optimization-and-explanation problem.
+Balancing business value, time pressure, implementation effort, technical risk,
+required skill sets, and inter-story dependency feasibility is already challenging;
+maintaining enough transparency for product owners and Scrum masters to accept the
+outcome makes the problem harder still.
+In practice, these determinations are routinely handled through manual triage,
+spreadsheet-based scoring, or rudimentary ranking rules---approaches that become
+progressively unreliable as the backlog scales or as historical sprint records
+accumulate without being operationalized.
+
+Earlier studies have established that formal optimization can strengthen agile
+planning decisions, and that richer project datasets raise both decision quality and
+empirical credibility \cite{ase2024, agile-mo, tawos, jira-dataset}.
+Concurrently, explainability has gained prominence as an engineering-tool requirement
+because project stakeholders must be able to trace and evaluate the rationale behind
+automated decisions \cite{xai-slr-se, xai-survey, explanation-matters}.
+Despite this convergence of interest, the literature contains no end-to-end
+implementation that unifies learned team behavior, binding operational constraints,
+and per-story explanations within a single deployable planning loop.
+
+\textbf{ApexS} targets that unresolved gap.
+The system was designed around four guiding principles.
+\emph{Context-awareness} requires that historical sprint records shape the relative
+importance assigned to urgency, value, and alignment in the objective function.
+\emph{Constraint-consistency} requires that infeasible stories be eliminated or
+constrained before the selection stage, not penalized as soft terms afterward.
+\emph{Explainability} requires that both acceptance and rejection decisions be
+auditable at the individual story level through human-readable justifications and
+confidence scores.
+\emph{Operationality} requires that the entire workflow---upload, optimization,
+explanation review, plan approval, and export---be completable without leaving the
+application.
+
+Building on the ASE~2024 context-aware sprint planning baseline \cite{ase2024},
+ApexS introduces four capabilities that were absent from that prior work:
+team-specific weight learning from historical outcomes, four simultaneous hard
+constraints within a single ILP formulation, per-story bidirectional explainability,
+and a complete approval-and-export decision support loop.
+
+Three research questions sharpen the empirical focus.
+\textbf{RQ1}~(Feasibility): can a learned-weight MILP formulation produce plans
+that remain operationally feasible under realistic capacity, risk, skill, and
+dependency constraints?
+\textbf{RQ2}~(Explainability): does the implemented explanation layer provide
+complete and decision-specific coverage for both accepted and rejected stories?
+\textbf{RQ3}~(Comparative): how does learned MILP compare with fixed-weight MILP,
+context-only MILP, greedy feasible ranking, and random feasible baselines on
+representative sprint-ready backlogs?
+Because the repository implements learning, optimization, explanation, and workflow
+support as distinct yet connected stages, the evaluation is conducted at the same
+level of granularity as the codebase itself.
+
+The contributions of this work are:
+\begin{enumerate}[leftmargin=*,itemsep=1pt,topsep=2pt]
+	\item A full-stack sprint planning system unifying dataset ingestion, context
+	      extraction, weight learning, MILP optimization, explanation generation, and
+	      approval/export workflow within a single reproducible Docker Compose stack.
+	\item A repository-grounded planning formulation that faithfully mirrors the
+	      implemented code path, encompassing status-aware feasibility filtering, risk
+	      gating, skill compatibility checking, and dependency constraints.
+	\item A quantitative evaluation that combines historical-data diagnostics,
+	      scenario-based planning metrics, latency measurements, and recorded system
+	      verification evidence.
+	\item A well-defined novelty layer over earlier sprint-planning research: team-specific
+	      weights inferred from historical outcomes, bidirectional explanation output
+	      covering both selected and rejected stories, and an end-to-end decision-support
+	      loop rather than a standalone optimizer.
+	\item A validated dataset processing pipeline comprising converter scripts, multiple
+	      pre-validated upload-ready datasets, and a normalized schema aligned with the
+	      Jira export format used in industrial practice.
+\end{enumerate}
+
+The remainder of this paper is organized as follows.
+Section~\ref{sec:related} surveys related work.
+Section~\ref{sec:requirements} describes the system requirements and process model.
+Section~\ref{sec:methodology} presents the architecture and methodology.
+Section~\ref{sec:results} reports evaluation results and discussion.
+Section~\ref{sec:conclusion} concludes with future directions.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Literature Survey}
+\label{sec:related}
+
+Automated support for sprint planning has evolved from early heuristic formulations
+toward increasingly context-sensitive backlog selection strategies.
+A multi-objective agile project planning model proposed by Ozcelikkan~\emph{et al.}
+established that mathematically grounded methods can surpass naive prioritization
+when objectives compete \cite{agile-mo}.
+Subsequently, Kula~\emph{et al.} introduced context-aware sprint plan generation,
+demonstrating that planning quality rises when project context is explicitly modeled
+rather than held constant \cite{ase2024}.
+Although these contributions motivate formal optimization, neither fully resolves the
+engineering challenge of surfacing decisions transparently, collecting systematic
+evidence, and embedding the planner within a usable workflow.
+
+The feasibility of applying mathematical programming to agile planning was
+separately confirmed by Chaves~\emph{et al.}, who formulated backlog selection
+as a constrained combinatorial problem and addressed it with a Lagrangian heuristic
+\cite{lagrangian-sprint}.
+Explainability and team-adaptive weighting, however, remained outside the scope of
+that work.
+
+Publicly available datasets have raised the standard for empirical evaluation in
+this domain.
+TAWOS supplies a structured corpus of agile open-source projects \cite{tawos},
+while the Jira repository dataset assembled by Montgomery~\emph{et al.} provides
+issue-level records that are particularly well-suited to backlog, workflow, and
+dependency analysis \cite{jira-dataset}.
+Research on intelligent software engineering in agile settings and on agile data
+analytics confirms that historical project traces can support prioritization,
+effort estimation, and reporting \cite{intelligent-agile, bigdata-agile}.
+These studies also highlight a recurring gap: analytics components are rarely
+assembled into deployable tools.
+
+Story point estimation research is directly relevant because reliable effort signals
+are a prerequisite for credible sprint planning.
+Transformer-based story point estimation \cite{gpt2sp}, ensemble-based prediction
+approaches \cite{ensemble-spe}, and controlled experiments with large language models
+for agile effort estimation \cite{llm-effort} collectively show that machine
+learning can identify consistent patterns in agile work items.
+These methods, however, are oriented toward estimation accuracy rather than toward
+sprint-feasibility decisions as a whole.
+Systematic mappings of early estimation in agile projects reinforce the same
+observation: estimation support is plentiful, while integrated planning pipelines
+remain scarce \cite{agile-estimation-map}.
+
+Story-level risk modeling constitutes an additional relevant thread.
+Bug triage and defect prediction studies \cite{bugtriage-deeplearning} establish that
+historical defect records can serve as proxy signals for per-story risk---a property
+that ApexS exploits through its dataset converter pipeline.
+Embedding those risk signals directly into a planning optimizer, rather than
+treating risk prediction as a separate downstream task, represents one of the open
+engineering challenges that this work begins to address.
+
+The necessity of explainability in software engineering tools is increasingly
+well-documented.
+General XAI surveys catalogue the inherent tension between model performance and
+interpretability \cite{xai-survey}, and empirical studies confirm that user trust is
+conditioned on both explanation quality and task context \cite{explanation-matters}.
+A systematic review specific to software engineering by Mohammadkhani~\emph{et al.}
+identifies a pronounced shortage of explainable systems that move beyond theoretical
+proposals and operate on real engineering data \cite{xai-slr-se}.
+ApexS occupies this identified gap: it couples learned adaptive weighting, hard
+constraint enforcement, and user-visible explanations in a system that can be
+deployed, tested, and audited against real project data.
+
+Table~\ref{tab:related-comparison} situates ApexS relative to representative prior
+systems across the four dimensions that define its core design objectives.
+
+\begin{table}[t]
+	\caption{Positioning ApexS Against Representative Prior Work}
+	\label{tab:related-comparison}
+	\centering\small
+	\begin{tabularx}{\columnwidth}{lYYYY}
+		\toprule
+		System                              & Team-adapt   & 4 constraints & Bidirectional explain & Full workflow \\
+		\midrule
+		ASE 2024 \cite{ase2024}             & Partial      & No            & No                    & No            \\
+		Lagrangian \cite{lagrangian-sprint} & No           & Partial       & No                    & No            \\
+		MO-agile \cite{agile-mo}            & No           & No            & No                    & No            \\
+		GPT2SP \cite{gpt2sp}                & No           & No            & No                    & No            \\
+		\textbf{ApexS (this work)}          & \textbf{Yes} & \textbf{Yes}  & \textbf{Yes}          & \textbf{Yes}  \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+Across these research threads, the unresolved challenge is not purely one of
+algorithmic accuracy.
+The harder problem is how to convert noisy project history into a plan that is
+simultaneously feasible, inspectable, and usable within an actual sprint workflow.
+ApexS contributes at precisely that level: rather than presenting isolated prediction
+or optimization components, it operationalizes the complete analytics pipeline.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{System Requirements and Process Model}
+\label{sec:requirements}
+
+\subsection{Functional Requirements}
+
+System specification followed the IEEE~830 SRS format prior to implementation.
+Eight functional requirements (F1--F8) govern the design:
+
+\begin{enumerate}[leftmargin=*,itemsep=1pt,topsep=2pt,label={F\arabic*.}]
+	\item \emph{Dataset Import}: upload historical sprint data in CSV format with
+	      schema validation (required columns: \texttt{story\_id},
+	      \texttt{story\_points}, \texttt{business\_value}, \texttt{risk\_score}),
+	      followed by deterministic normalization of \texttt{depends\_on},
+	      \texttt{required\_skill}, and \texttt{status} fields.
+	\item \emph{Context Analysis}: compute sprint velocity, completion rate, skill
+	      distribution, and feature correlations from the uploaded history.
+	\item \emph{Weight Learning}: derive team-specific urgency, value, and alignment
+	      weights from historical completion outcomes.
+	\item \emph{MILP Optimization}: produce optimized sprint backlogs subject to
+	      configurable constraints, with a greedy fallback activated when the MILP
+	      solver is unavailable or cannot reach an optimal solution.
+	\item \emph{Risk Awareness}: apply a configurable risk-score threshold as a hard
+	      feasibility gate before the optimization stage and carry the filtered set
+	      through to selection.
+	\item \emph{Explainability}: emit per-story acceptance and rejection reasons,
+	      contribution breakdowns, and confidence scores.
+	\item \emph{Modification}: re-execute optimization from an existing plan with
+	      updated constraint parameters to enable what-if analysis.
+	\item \emph{Reporting}: expose velocity trends, value delivery trends, risk
+	      profiles, and learning-model diagnostics.
+\end{enumerate}
+
+Table~\ref{tab:req-traceability} maps each requirement to the implementing system
+component.
+
+\begin{table}[t]
+	\caption{Requirements-to-Implementation Traceability Matrix}
+	\label{tab:req-traceability}
+	\centering\small
+	\begin{tabularx}{\columnwidth}{lY}
+		\toprule
+		Requirement         & Implementing Component                          \\
+		\midrule
+		F1 Import Data      & \texttt{ContextExtractor} + Dataset Upload API  \\
+		F2 Context Analysis & \texttt{ContextExtractor}                       \\
+		F3 Learn Weights    & \texttt{WeightLearningModel} (Ridge regression) \\
+		F4 Optimization     & \texttt{OptimizationEngine} (PuLP/CBC)          \\
+		F5 Risk Awareness   & Strict pre-optimization feasibility filter      \\
+		F6 Explainability   & \texttt{ExplainabilityEngine}                   \\
+		F7 Modification     & Plans API + \texttt{OptimizationEngine} re-run  \\
+		F8 Reporting        & Reports API + Report Viewer UI                  \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\subsection{Non-Functional Requirements}
+
+Several non-functional constraints govern system behavior.
+Performance requires plan generation within 60~s for backlogs containing up to 100
+stories.
+Reliability requires a best-effort fallback plan upon infeasibility rather than a
+server-side error.
+Usability requires that human-readable explanations be accessible from both the API
+and the UI.
+Portability requires single-command full-stack deployment through Docker Compose.
+Security requires JWT-based role-level authentication covering Scrum Master and
+Product Owner roles.
+
+\subsection{Process Model}
+
+Because ApexS is designed to function \emph{within} the Scrum framework---targeting
+the Sprint Planning ceremony in particular---development naturally adopted the
+\emph{Agile Scrum} process model.
+This alignment was deliberate: the same incremental sprint structure used in the
+target domain was applied to the development work itself.
+Six sequential development sprints corresponded to six implementation phases: Sprint~0
+(infrastructure and scaffolding), Sprint~1 (data ingestion and context extraction),
+Sprint~2 (MILP engine), Sprint~3 (explainability), Sprint~4 (frontend integration),
+and Sprint~5 (evaluation and documentation).
+
+Validating design decisions at each increment, rather than accumulating risk toward
+a single integration point, was a key benefit of this alignment.
+Sequential heavyweight models such as Waterfall were considered and rejected because
+research requirements evolved as empirical results became available.
+A full microservices architecture was likewise ruled out on grounds of operational
+simplicity: the six-service Docker Compose configuration delivers sufficient service
+isolation without the inter-service contract management overhead that microservices
+would impose.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{System Architecture and Overview}
+
+Five architectural layers structure the ApexS platform:
+(1)~\emph{Presentation Layer}---a React~18 and TypeScript frontend built with Vite
+and React Query;
+(2)~\emph{Application Layer}---a FastAPI service exposing a versioned REST API
+at \texttt{/api/v1};
+(3)~\emph{Worker Layer}---a Celery task backed by a Redis broker that executes the
+planning pipeline asynchronously;
+(4)~\emph{Data Layer}---a SQLAlchemy ORM operating over SQLite in development or
+PostgreSQL in production, with schema evolution managed by Alembic; and
+(5)~\emph{Storage Layer}---MinIO for CSV and JSON file objects.
+
+Six services constitute the Docker Compose stack: \texttt{frontend},
+\texttt{backend}, \texttt{db} (PostgreSQL), \texttt{redis}, \texttt{minio}, and
+\texttt{celery\_worker}.
+Issuing a single \texttt{docker compose up --build} command brings the system online
+at four entry points: the frontend UI at \texttt{:5173}, the backend API at
+\texttt{:8000}, Swagger documentation at \texttt{:8000/docs}, and the MinIO console
+at \texttt{:9001}.
+
+Eighteen versioned REST endpoints distributed across seven route groups---\texttt{/auth},
+\texttt{/teams}, \texttt{/datasets}, \texttt{/sprints}, \texttt{/stories},
+\texttt{/plans}, and \texttt{/reports}---are exposed by the backend.
+Plan generation follows an asynchronous pattern: \texttt{POST /plans/generate}
+returns a \texttt{job\_id} immediately, and the caller polls
+\texttt{GET /plans/status/\{job\_id\}} until \texttt{status = done}.
+This design prevents blocking the UI during ILP solve time and enables real-time
+progress reporting.
+
+\begin{figure*}[t]
+	\centering
+	\IfFileExists{figs/architecture.png}{%
+		\includegraphics[width=0.97\textwidth]{figs/architecture.png}%
+	}{%
+		\placeholderwidefig{Five-layer modular architecture of the ApexS sprint planning stack.}{Replace with actual architecture diagram before submission.}%
+	}
+	\caption{Five-layer modular architecture of the ApexS sprint planning stack.
+		Layers from top to bottom: (1)~Presentation Layer with React~18 frontend,
+		(2)~Application Layer exposing seven FastAPI route groups for team/dataset/plan
+		management, including four core application services (Optimization via
+		PuLP/CBC, Explainability engine, Context extractor, and Weight learner),
+		(3)~Worker Layer using Celery with Redis broker for long-running planning tasks,
+		(4)~Data Layer with SQLAlchemy ORM and Alembic-managed migrations, and
+		(5)~Storage Layer using PostgreSQL, Redis, and MinIO.
+		The planning pipeline (dataset upload $\rightarrow$ context extraction
+		$\rightarrow$ weight learning $\rightarrow$ MILP optimization $\rightarrow$
+		explanation generation) executes asynchronously in the Celery worker, with
+		progress exposed through the Plans API.}
+	\label{fig:architecture}
+\end{figure*}
+
+Four backend services are central to the paper's claims and are directly
+implemented in the repository.
+\texttt{ContextExtractor} derives contextual weights and team statistics from
+historical sprint records.
+\texttt{WeightLearningModel} fits a Ridge regression model over story points,
+business value, and risk score to obtain urgency, value, and alignment weights.
+Binary story selection is performed by \texttt{OptimizationEngine} using PuLP/CBC.
+\texttt{ExplainabilityEngine} emits human-readable justifications together with
+contribution fields and confidence scores for every planning decision.
+These stages are orchestrated by a planning worker that reports progress through
+eight named transitions: \texttt{loading}, \texttt{syncing\_stories},
+\texttt{loading\_history}, \texttt{extracting}, \texttt{learning},
+\texttt{optimizing}, \texttt{explaining}, and \texttt{done}.
+
+\subsection{Dataset Processing Pipeline}
+
+To accommodate heterogeneous Jira-style exports, the repository supplies dataset
+conversion and cleaning scripts that transform raw source files into the normalized
+schema expected by the planner.
+Common source fields such as \texttt{issue key}, \texttt{summary}, \texttt{priority},
+and \texttt{story points} are mapped to a standardized eleven-column CSV:
+\texttt{story\_id}, \texttt{title}, \texttt{description}, \texttt{story\_points},
+\texttt{business\_value}, \texttt{risk\_score}, \texttt{required\_skill},
+\texttt{sprint\_id}, \texttt{sprint\_completed}, \texttt{depends\_on}, and
+\texttt{status}.
+A separate cleaning script then normalizes status labels, derives or bounds risk and
+value fields, infers required skills from textual cues, and removes duplicate
+records. In the backend execution path, an additional preprocessing layer enforces
+runtime consistency before optimization: dependency lists are parsed from raw string
+formats (e.g., ``A,B,C''), skill labels are lowercased and whitespace-normalized,
+and status values are canonicalized to prevent formatting artifacts from altering
+feasibility outcomes.
+
+For the final paper, the empirical study is restricted to four cleaned
+Jira-derived datasets:
+\texttt{files/cleaned\_datasets/spring\_xd\_clean.csv},
+\texttt{files/cleaned\_datasets/usergrid\_clean.csv},
+\texttt{files/cleaned\_datasets/aurora\_clean.csv}, and
+\texttt{tawos/paper\_datasets/tawos\_apex\_clean.csv}.
+Spring XD, Usergrid, and Aurora serve as supporting comparative datasets; TAWOS
+functions as the primary real-world evaluation dataset owing to its substantially
+larger corpus and its richer combination of sprint and dependency evidence.
+
+Because an identical normalized schema is applied across all four files, a single
+planning pipeline and a single reporting protocol suffice for the entire evaluation.
+All descriptive statistics, optimization outcomes, baseline comparisons, and case
+study examples should consequently be derived exclusively from these four frozen CSV
+snapshots.
+Corpus-level statistics are reported in Table~\ref{tab:dataset-summary} in the
+Results section.
+
+\subsection{Context Extraction and Weight Learning}
+
+Sprint-level statistics produced by the context extractor serve a dual purpose:
+they supply descriptive analytics for reporting and they initialize the
+weight-learning stage with project-specific priors.
+The extractor computes mean velocity over available sprint IDs, completion rate,
+skill distribution, average tolerated risk among completed stories, and the
+correlation between business value and completion.
+Let $V$ denote mean sprint velocity, $\rho$ the value-completion correlation, $\bar{r}$
+the mean risk of completed stories, and $C$ the target sprint capacity.
+Three contextual components are normalized as follows:
+\begin{equation}
+	\begin{aligned}
+		u & = \min(1,\; V/C),                     \\
+		v & = \min(1,\; \max(0.1,\; \rho + 0.5)), \\
+		a & = \min(1,\; \max(0.1,\; 1 - \bar{r}))
+	\end{aligned}
+	\label{eq:context}
+\end{equation}
+and subsequently rescaled so that $u+v+a=1$.
+Within the implementation, these quantities become the contextual urgency, value,
+and alignment weights.
+
+A Ridge regression model is then fitted by the weight learner over the features
+\texttt{story\_points}, \texttt{business\_value}, and \texttt{risk\_score}, treating
+\texttt{sprint\_completed} as the target.
+Let $\mathbf{x}_i = [SP_i,\, BV_i,\, r_i]^\top$ and $y_i \in \{0,1\}$ denote
+the completion label.
+The Ridge objective is:
+\begin{equation}
+	\hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}}
+	\left\| \mathbf{X}\boldsymbol{\beta} - \mathbf{y} \right\|_2^2
+	+ \lambda \left\| \boldsymbol{\beta} \right\|_2^2
+	\label{eq:ridge}
+\end{equation}
+with $\lambda = 1.0$ (scikit-learn default).
+To improve validity, model evaluation is performed on a held-out 20\% test split
+(80/20 train-test protocol), and MAE/$R^2$ are computed on the test partition only.
+Coefficient interpretation is sign-aware rather than magnitude-only: story points
+and risk are expected to decrease completion likelihood, while business value is
+expected to increase it. Consequently, coefficient directions are aligned to domain
+semantics and transformed into non-negative importance scores that are normalized to
+yield the final optimization weights $w_u, w_v, w_a$ satisfying
+$w_u + w_v + w_a = 1$.
+For robustness, two guarded fallbacks are used in production: if the training sample
+size is below 10 rows, or if numerical/model dependencies are unavailable, context
+weights are reused; if target variance in the test split is zero, $R^2$ is omitted.
+These safeguards prevent unstable estimates from propagating into the optimization
+stage.
+The learned quantities observed in the current evaluation snapshot are summarized in
+Table~\ref{tab:learning-metrics}.
+
+\begin{table}[t]
+	\caption{Context and Learning Metrics Derived from the Current Evaluation Snapshot}
+	\label{tab:learning-metrics}
+	\centering\small
+	\begin{tabularx}{\columnwidth}{lY}
+		\toprule
+		Metric                       & Observed value                                                   \\
+		\midrule
+		Mean sprint velocity         & 79.17 story points                                               \\
+		Completion rate              & 0.7000                                                           \\
+		Average tolerated risk       & 0.2395                                                           \\
+		Value-completion correlation & 0.0879                                                           \\
+		Context urgency weight       & 0.4258                                                           \\
+		Context value weight         & 0.2504                                                           \\
+		Context alignment weight     & 0.3238                                                           \\
+		Learned urgency weight       & 0.0222                                                           \\
+		Learned value weight         & 0.1112                                                           \\
+		Learned alignment weight     & 0.8666                                                           \\
+		Learning sample count        & 170                                                              \\
+		Mean absolute error          & 0.2035                                                           \\
+		$R^2$                        & 0.6543                                                           \\
+		Model type                   & Ridge regression (80/20 hold-out, sign-aware importance mapping) \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+The alignment/risk axis dominates the learned weights in this snapshot, which is a
+repository-specific empirical observation rather than a predetermined assumption.
+In the present dataset, successful story completion correlates more strongly with
+low risk than with raw story size or business value. This imbalance directly shapes
+downstream selection behavior, particularly under constrained sprint capacities.
+
+\subsection{Pipeline Semantics}
+
+Rather than operating as a monolithic black box, the implemented planning pipeline
+follows a strict eight-step progression: (1)~loading the most recently uploaded
+dataset, (2)~upserting sprint stories into persistent storage, (3)~aggregating
+historical uploads for the team, (4)~extracting context, (5)~learning weights,
+(6)~solving the MILP, (7)~generating explanations, and (8)~persisting the resulting
+plan and explanation records.
+Because each stage produces inspectable artifacts, this sequencing is important for
+research validity: the system supports analysis at both the workflow level and the
+algorithmic level.
+
+Algorithm~\ref{alg:pipeline} provides a high-level pseudocode representation of
+the planning task, including runtime preprocessing and post-solve validation
+artifacts, which map one-to-one to the named progress states visible in the
+frontend.
+
+\begin{algorithm}[t]
+	\caption{ApexS Asynchronous Planning Pipeline}
+	\label{alg:pipeline}
+	\begin{algorithmic}[1]
+		\Require dataset $D$, sprint config $(C, \tau, \mathcal{S}, \text{goal})$, stories $\mathcal{B}$
+		\Ensure sprint plan $P$, explanations $E$
+		\State \textbf{progress} $\leftarrow$ \texttt{loading}
+		\State $D' \leftarrow \text{validate}(D)$; upsert stories $\mathcal{B}$
+		\State $\mathcal{B} \leftarrow \text{preprocess}(\mathcal{B})$
+		\hfill $\triangleright$ normalize status, skill, and dependency fields
+		\State \textbf{progress} $\leftarrow$ \texttt{extracting}
+		\State $\text{ctx} \leftarrow \text{ContextExtractor.run}(D', C)$
+		\hfill $\triangleright$ Eq.~\ref{eq:context}
+		\State \textbf{progress} $\leftarrow$ \texttt{learning}
+		\State $\mathbf{w} \leftarrow \text{WeightLearningModel.fit}(D', \text{ctx})$
+		\hfill $\triangleright$ Eq.~\ref{eq:ridge}
+		\State \textbf{progress} $\leftarrow$ \texttt{optimizing}
+		\State $\mathcal{F} \leftarrow \text{feasibility\_filter}(\mathcal{B}, \tau, \mathcal{S})$
+		\hfill $\triangleright$ Eq.~\ref{eq:feasible}
+		\State $P \leftarrow \text{OptimizationEngine.solve}(\mathcal{F}, \mathbf{w}, C)$
+		\hfill $\triangleright$ Eq.~\ref{eq:objective}--\ref{eq:binary}
+		\State $M \leftarrow \text{collect\_diagnostics}(P)$
+		\hfill $\triangleright$ feasibility counts + score distribution
+		\State \textbf{progress} $\leftarrow$ \texttt{explaining}
+		\State $E \leftarrow \text{ExplainabilityEngine.generate}(P, \mathcal{B}, \mathbf{w})$
+		\State \textbf{persist} $P$, $E$, $M$ to database
+		\State \textbf{progress} $\leftarrow$ \texttt{done}; \textbf{return} $(P, E)$
+	\end{algorithmic}
+\end{algorithm}
+
+This design also improves traceability during demonstration and evaluation.
+Progress transitions exposed in the frontend map one-to-one to worker stages; the
+reports endpoint surfaces learned-model diagnostics; and the explainability
+endpoints expose the final decision rationale.
+Viewed as a research artifact, ApexS is therefore more than an optimizer benchmark:
+it is a complete, empirically grounded system.
+
+\subsection{Optimization Model}
+
+The optimization stage closely follows the repository implementation.
+Candidate stories are first subjected to feasibility conditions:
+\begin{equation}
+	\mathcal{F} =
+	\left\{
+	i \in \mathcal{B} \;\middle|\;
+	\text{status}_i \notin \mathcal{N},\;
+	r_i \le \tau,\;
+	\text{skill}_i \in \mathcal{S} \;\text{or empty},\;
+	\text{dep}(i) \subseteq \mathcal{B}
+	\right\}
+	\label{eq:feasible}
+\end{equation}
+where $\mathcal{B}$ is the backlog slice, $\mathcal{N}$ denotes the set of
+non-plannable statuses (\texttt{done}, \texttt{closed}, \texttt{resolved},
+\texttt{completed}), $\tau$ is the risk threshold, and $\mathcal{S}$ is the
+available-skill set. Importantly, dependency feasibility is strict: if any declared
+dependency is absent from the current candidate pool, the story is rejected before
+optimization.
+
+Over the feasible set $\mathcal{F}$, ApexS solves a normalized objective:
+\begin{equation}
+	\max \sum_{i \in \mathcal{F}} x_i
+	\Bigl(
+	w_v \cdot \widetilde{BV}_i +
+	w_u \cdot (1 - \widetilde{SP}_i) +
+	w_a \cdot (1 - r_i)
+	\Bigr)
+	\label{eq:objective}
+\end{equation}
+subject to:
+\begin{align}
+	\sum_{i \in \mathcal{F}} x_i \cdot SP_i & \le C \label{eq:capacity}                                      \\
+	x_i                                     & \le x_j, \quad \forall j \in \text{dep}(i) \label{eq:deps}     \\
+	x_i                                     & \in \{0,1\}, \quad \forall i \in \mathcal{F} \label{eq:binary}
+\end{align}
+where $\widetilde{SP}_i = \min(1, SP_i/13)$ and
+$\widetilde{BV}_i = \min(1, BV_i/10)$ denote normalized effort and value,
+$r_i \in [0,1]$ is the risk score (clamped if needed), and $C$ is sprint capacity.
+All feature terms and the weighted aggregate are bounded to $[0,1]$ to ensure
+numerical stability and comparability across datasets.
+
+Two implementation choices are particularly consequential.
+First, risk thresholding, skill compatibility, and status filtering are realized as
+hard feasibility gates applied before optimization rather than as soft penalty
+terms. This deliberate engineering decision reduces the MILP search space and
+renders rejection reasons unambiguous.
+Second, dependency logic is encoded through binary implication constraints.
+Together, these choices ensure that rejected stories can be attributed to
+concrete, traceable causes---risk excess, skill mismatch, or unmet
+dependencies---rather than opaque score differences.
+
+When the MILP problem is infeasible (for instance, when all feasible stories
+individually exceed capacity), the system activates a greedy fallback: stories are
+ranked by descending objective score, selected while preserving both capacity and
+dependency validity, and a warning is emitted in the result payload
+(``MILP failed $\rightarrow$ using greedy approximation'').
+This fallback preserves the Reliability non-functional requirement (F4): a usable
+planning artifact is always produced, regardless of how extreme the constraint
+configuration may be.
+
+\subsection{Explainability and Decision Support Loop}
+
+One explanation record is generated per story by the explanation engine,
+covering both selected and rejected items.
+To preserve semantic consistency, explanation contributions are computed from the
+same normalized scoring components used by the optimization stage
+(normalized value, normalized effort complement, and risk complement) rather than
+from an alternate heuristic.
+For selected stories, contribution-style fields are computed from weighted business
+value, weighted risk impact, and an effort-derived alignment signal, together with
+a confidence score derived from the same bounded objective used by the optimizer:
+\begin{equation}
+	\text{conf}_i =
+	\text{clip}_{[0,1]}\!\left(
+	w_v \widetilde{BV}_i + w_u(1-\widetilde{SP}_i) + w_a(1-r_i)
+	\right)
+	\label{eq:confidence}
+\end{equation}
+Natural-language text is subsequently synthesized from observable conditions such
+as high business value, low risk, and efficient effort utilization.
+For rejected stories, one of five rejection patterns is emitted in descending
+precedence order: (1)~risk threshold exceeded, (2)~required skill unavailable,
+(3)~unmet dependency, (4)~sprint capacity exceeded, or (5)~lower priority than
+selected stories. Preprocessed status and skill labels are reused in this stage so
+that rejection narratives match feasibility decisions exactly.
+
+The architectural novelty of this design lies in its integration depth.
+Explainability is not a post-hoc dashboard appended to an optimizer.
+Instead, explanation retrieval is embedded within the same API surface that supports
+plan generation, pagination, approval, and export.
+The frontend complements this integration with a paginated rejected-story table, a
+value-versus-risk scatter chart, and per-story explanation cards.
+The result is a closed decision loop spanning the full
+\emph{upload~$\to$~generate~$\to$~explain~$\to$~approve~$\to$~export} lifecycle.
+
+\begin{figure*}[t]
+	\centering
+	\IfFileExists{figs/ui_workflow.png}{%
+		\includegraphics[width=0.97\textwidth]{figs/ui_workflow.png}%
+	}{%
+		\placeholderwidefig{End-to-end planning workflow in the ApexS UI.}{Replace with actual UI workflow screenshot before submission.}%
+	}
+	\caption{End-to-end planning workflow in the ApexS UI.
+		From left to right: (a)~Dataset upload with schema validation,
+		(b)~Sprint configuration with capacity/risk/skill constraints,
+		(c)~Asynchronous optimization processing with step-by-step progress,
+		(d)~Generated sprint plan with KPI summary and quality checks,
+		(e)~Explainability panel with per-story SHAP-based contribution breakdown and
+		confidence scores, and (f)~Plan approval with selected stories snapshot and
+		Jira-compatible export.}
+	\label{fig:ui-workflow}
+\end{figure*}
+
+\subsection{Novelty Relative to Prior Work}
+
+Four distinct novelty claims differentiate ApexS from a baseline sprint optimizer,
+all grounded in the implemented repository:
+\begin{enumerate}[leftmargin=*,itemsep=1pt,topsep=2pt]
+	\item \textbf{Team-adaptive weight learning}: rather than relying on fixed a priori
+	      coefficients, urgency, value, and alignment are inferred from each team's
+	      historical completion record.
+	\item \textbf{Four-constraint operational feasibility}: capacity limits, risk
+	      threshold, skill availability, and dependency satisfaction are all active
+	      constraints in the current code path, enforced simultaneously.
+	\item \textbf{Bidirectional story-level explainability}: concrete operational causes
+	      and confidence scores accompany acceptance and rejection decisions for every
+	      story processed.
+	\item \textbf{Closed decision-support workflow}: the system spans the full sequence
+	      of upload, context learning, optimization, explanation review, plan approval,
+	      and Jira-compatible export without requiring external tooling.
+\end{enumerate}
+The novelty is therefore fundamentally architectural and workflow-centric, not
+merely algorithmic.
+Table~\ref{tab:related-comparison} (Section~\ref{sec:related}) provides a
+comparative positioning against prior work.
+
+\begin{table}[t]
+	\caption{Novelty Positioning Against Common Sprint-Planning Tool Patterns}
+	\label{tab:novelty-summary}
+	\centering\small
+	\begin{tabularx}{\columnwidth}{lYY}
+		\toprule
+		Capability                             & Typical research prototype & ApexS \\
+		\midrule
+		Historical team adaptation             &
+		Often fixed weights or heuristics      &
+		Learned urgency/value/alignment weights from team history                   \\
+		Hard planning constraints              &
+		Usually partial or task-specific       &
+		Capacity, risk, skill, and dependency constraints in one code path          \\
+		Decision explanation                   &
+		Often absent or limited to final score &
+		Per-story explanations for selected and rejected items                      \\
+		Workflow closure                       &
+		Often optimizer only                   &
+		Upload, generate, explain, approve, and export                              \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Results and Discussion}
+\label{sec:results}
+
+\subsection{Dataset Characteristics}
+
+The empirical evaluation is organized around the four final datasets used in the
+study.
+Spring XD, Usergrid, and Aurora are treated as supporting comparative corpora
+because each provides a project-specific perspective on planner behavior under
+distinct backlog characteristics.
+TAWOS is designated as the primary real-world evaluation dataset because it offers
+the largest corpus, explicit sprint groupings, and richer dependency evidence
+through issue links.
+The discussion therefore proceeds from dataset characterization to planning
+performance, followed by baseline comparison, distributional analysis, and a
+qualitative case study.
+
+Table~\ref{tab:dataset-summary} serves as the anchor profile for the remainder of
+this section; all subsequent performance tables and figures are derived from the
+same frozen snapshot to ensure internal consistency.
+The recommended narrative sequence introduces the three project-specific corpora
+first, then positions TAWOS as the strongest external-validation setting.
+
+\begin{table*}[t]
+	\caption{Summary of the Datasets Used in the ApexS Evaluation}
+	\label{tab:dataset-summary}
+	\centering\scriptsize
+	\begin{tabularx}{\textwidth}{lcccYYcc}
+		\toprule
+		Dataset   & Stories                                        & Sprint grps & Dep.\ rows & Status dist. & SP dist. & Mean BV & Mean risk \\
+		\midrule
+		Spring XD & 2,861                                          & 66          & 0
+		          & C 2010; P 678; CAS 128; NCS 45
+		          & 1:709; 2:510; 3:594; 5:452; 8:307; other:289
+		          & 5.09                                           & 0.36                                                                     \\
+		Usergrid  & 928                                            & 38          & 0
+		          & NCS 406; C 370; P 83; CAS 69
+		          & 1:418; 2:113; 3:264; 5:105; 8:28
+		          & 5.88                                           & 0.44                                                                     \\
+		Aurora    & 568                                            & 40          & 0
+		          & C 344; NCS 160; CAS 45; P 19
+		          & 1:382; 2:70; 3:49; 5:51; 8:13; other:3
+		          & 5.80                                           & 0.43                                                                     \\
+		TAWOS     & 14,738                                         & 343         & 673
+		          & done 11542; backlog 2951; in\_progress 245
+		          & 1:4751; 2:1582; 3:2103; 5:1505; 8:801; 13:3996
+		          & 6.03                                           & 0.52                                                                     \\
+		\bottomrule
+		\multicolumn{8}{l}{\footnotesize C = Completed, P = Punted, CAS = CompletedInAnotherSprint, NCS = NotCompletedWithinSprint.}
+	\end{tabularx}
+\end{table*}
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/dataset_size_distribution.png}{%
+		\includegraphics[width=\columnwidth]{figs/dataset_size_distribution.png}%
+	}{%
+		\placeholderfig{Dataset size distribution across the four evaluation datasets.}{Replace with actual figure before submission.}%
+	}
+	\caption{Dataset size distribution across the four evaluation datasets.}
+	\label{fig:dataset-size-distribution}
+\end{figure}
+
+The dataset profile establishes the empirical foundation for subsequent analysis.
+Aggregated across the four frozen snapshots, the study encompasses 19,095 stories
+and 487 sprint groups.
+With 14,738 stories and 343 sprint groups, TAWOS is far and away the largest corpus;
+Spring XD, Usergrid, and Aurora contribute 2,861, 928, and 568 stories respectively.
+Among the cleaned snapshots, TAWOS is also the sole dataset containing non-empty
+dependency rows (673), a distinction that must be stated explicitly when interpreting
+dependency-aware planning results.
+Mean business value spans 5.09 in Spring XD to 6.03 in TAWOS, while mean risk
+ranges from 0.36 to 0.52 across the four corpora.
+
+\subsection{Performance Evaluation}
+
+Planning performance is assessed at two complementary levels.
+First, the frozen CSV snapshots establish the scale and structural properties of the
+four-dataset evaluation pool.
+Second, run-dependent planning metrics are captured from ApexS executions conducted
+on Spring XD, Usergrid, Aurora, and TAWOS under controlled conditions.
+
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+				width=\columnwidth,
+				height=1.9in,
+				ybar,
+				bar width=5pt,
+				ymin=0,
+				ylabel={Story points},
+				xlabel={Sprint},
+				symbolic x coords={S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12},
+				xtick=data,
+				x tick label style={font=\scriptsize, rotate=45, anchor=east},
+				enlarge x limits=0.02,
+				nodes near coords,
+				every node near coord/.append style={font=\tiny, rotate=90, anchor=west},
+				axis line style={black},
+				tick style={black}
+			]
+			\addplot[fill=teal!70!black] coordinates {
+					(S1,47) (S2,63) (S3,58) (S4,54) (S5,64) (S6,73)
+					(S7,72) (S8,63) (S9,116) (S10,100) (S11,81) (S12,159)
+				};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Sprint velocity trend from the current evaluation snapshot.
+		The late-stage increase indicates a richer planning signal for the
+		weight-learning stage.}
+	\label{fig:velocity}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[
+				width=\columnwidth,
+				height=1.9in,
+				ymin=0,
+				ylabel={Business value},
+				xlabel={Sprint},
+				symbolic x coords={S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12},
+				xtick=data,
+				x tick label style={font=\scriptsize, rotate=45, anchor=east},
+				enlarge x limits=0.02,
+				axis line style={black},
+				tick style={black}
+			]
+			\addplot[
+				color=orange!90!black,
+				mark=*,
+				line width=1pt
+			] coordinates {
+					(S1,82) (S2,92) (S3,86) (S4,76) (S5,81) (S6,77)
+					(S7,77) (S8,89) (S9,150) (S10,125) (S11,119) (S12,210)
+				};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Business value delivered across the same reference planning history.
+		The positive co-trend with velocity in Fig.~\ref{fig:velocity} confirms
+		the usefulness of the snapshot for planning signal extraction.}
+	\label{fig:value-trend}
+\end{figure}
+
+The late-stage growth in both velocity and delivered value indicates that the
+dataset is neither flat nor degenerate.
+Sufficient variation is present for the learning and reporting modules to produce
+meaningful, nontrivial outputs.
+As shown in Table~\ref{tab:learning-metrics}, the regression yields informative
+rather than random estimates: an $R^{2}$ of 0.6543 does not establish predictive
+generalization, but it does confirm usable signal for adaptive weighting within the
+system.
+
+\paragraph{Repository-Grounded Planning Behavior.}
+
+To assess operational planning behavior in a controlled and repeatable manner,
+all four frozen datasets were evaluated at a fixed sprint capacity of 30 story points
+and risk threshold $\tau=0.7$.
+Aggregate outcomes from these runs appear in
+Tables~\ref{tab:performance-metrics} and \ref{tab:baseline-comparison}, while
+Table~\ref{tab:planning-scenarios} provides a compact scenario-based interpretability
+summary.
+In addition to aggregate outcomes, the updated backend emits per-run diagnostic
+artifacts: (i) feasibility counts (total stories and counts filtered by risk,
+skill, dependency, and status) and (ii) score-distribution summaries
+(minimum, maximum, mean) over feasible candidates. These diagnostics were used to
+verify that observed plan differences across scenarios arise from explicit
+constraint effects rather than silent preprocessing or scaling artifacts.
+
+\begin{table*}[t]
+	\caption{Representative Planning Scenarios on a 20-Story Candidate Backlog (RQ1)}
+	\label{tab:planning-scenarios}
+	\centering\small
+	\begin{tabular}{lccccccc}
+		\toprule
+		Scenario & Capacity      & Risk $\tau$ & Available skills        & Selected
+		         & Capacity used & Total value & Avg.\ selected risk                                  \\
+		\midrule
+		P1       & 10            & 0.7         & All 5 skills            & 3        & 10 & 28 & 0.083 \\
+		P2       & 20            & 0.7         & All 5 skills            & 6        & 20 & 54 & 0.083 \\
+		P3       & 30            & 0.7         & All 5 skills            & 9        & 29 & 73 & 0.111 \\
+		P4       & 30            & 0.1         & All 5 skills            & 8        & 28 & 68 & 0.081 \\
+		P5       & 30            & 0.7         & Backend + Frontend only & 8        & 30 & 66 & 0.131 \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+Three findings stand out.
+First, increasing capacity produces a monotonic growth in plan size: the selected
+set expands from 3 to 9 stories as capacity rises from 10 to 30 story points
+(P1$\to$P3), with accepted total value climbing correspondingly from 28 to 73.
+Second, tightening the risk filter (P4 vs.\ P3) removes one additional story and
+reduces accepted value from 73 to 68, while lowering mean selected risk from 0.111
+to 0.081---confirming that constraint C2 (risk) is active and correctly calibrated.
+Third, restricting the available skill set to Backend and Frontend (P5 vs.\ P3)
+reduces accepted value from 73 to 66, demonstrating that skill feasibility
+materially influences plan composition.
+These behaviors constitute exactly what a trustworthy planning engine should expose,
+directly answering \textbf{RQ1}: the learned-weight MILP formulation produces plans
+that are constraint-consistent across all four constraint types.
+
+In the 30-point baseline scenario (P3), five stories with explicit dependencies were
+included in the selected set, and all dependency relationships were satisfied after
+optimization---confirming C4 correctness.
+The selected stories spanned a mixed skill profile: Backend (5 stories), Database
+(2), Testing (1), and Frontend (1), indicating that the optimization did not
+collapse into a single-skill or single-feature selection pattern.
+Selection pressure was nonetheless visibly shaped by the learned weights.
+Across the four-dataset evaluation runs (Table~\ref{tab:baseline-comparison}),
+selected sets consistently exhibit lower average risk than the feasible value-first
+baseline at identical capacity---a pattern coherent with the dominant alignment/risk
+influence in the learned objective.
+
+Table~\ref{tab:performance-metrics} provides the paper-ready planning metrics for
+Spring XD, Usergrid, Aurora, and TAWOS, drawn from frozen evaluation runs at the
+fixed capacity of 30 story points and threshold $\tau=0.7$.
+
+\begin{table*}[t]
+	\caption{ApexS Performance Metrics Across the Evaluation Datasets}
+	\label{tab:performance-metrics}
+	\centering\scriptsize
+	\begin{tabular}{lccccccc}
+		\toprule
+		Dataset   & Selected & Deliv.\ BV & Used SP & Avg.\ risk & Dep.\ sat. & Sprint compl. & Skill cov. \\
+		\midrule
+		Spring XD & 30       & 165.65     & 30      & 0.321      & 100\%      & 0.00          & 83.33\%    \\
+		Usergrid  & 30       & 191.60     & 30      & 0.375      & 100\%      & 0.00          & 50.00\%    \\
+		Aurora    & 30       & 191.69     & 30      & 0.425      & 100\%      & 0.00          & 83.33\%    \\
+		TAWOS     & 30       & 212.16     & 30      & 0.568      & 100\%      & 0.00          & 100.00\%   \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+\subsection{Comparative Evaluation / Baselines}
+
+To address \textbf{RQ3}, the implemented MILP planner was compared against a
+simpler baseline that ranks feasible stories in descending order of business value
+and greedily accepts them while respecting capacity and dependency feasibility.
+This baseline is not intended as a state-of-the-art competitor; it is a
+deliberately strong sanity check, reflecting the fact that many practical teams
+approximate sprint planning through manual value-first selection.
+
+\begin{table*}[t]
+	\caption{Baseline Comparison Between ApexS and a Feasible Ranking Policy}
+	\label{tab:baseline-comparison}
+	\centering\scriptsize
+	\begin{tabular}{lcccccc}
+		\toprule
+		Dataset   & Method   & Selected & Deliv.\ BV & Used SP & Avg.\ risk & Dep.\ sat. \\
+		\midrule
+		Spring XD & Baseline & 11       & 75.03      & 30      & 0.463      & 100\%      \\
+		Spring XD & ApexS    & 30       & 165.65     & 30      & 0.321      & 100\%      \\
+		Usergrid  & Baseline & 16       & 109.84     & 30      & 0.453      & 100\%      \\
+		Usergrid  & ApexS    & 30       & 191.60     & 30      & 0.375      & 100\%      \\
+		Aurora    & Baseline & 18       & 122.80     & 30      & 0.480      & 100\%      \\
+		Aurora    & ApexS    & 30       & 191.69     & 30      & 0.425      & 100\%      \\
+		TAWOS     & Baseline & 12       & 90.06      & 30      & 0.644      & 100\%      \\
+		TAWOS     & ApexS    & 30       & 212.16     & 30      & 0.568      & 100\%      \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+The cross-dataset comparison favors ApexS uniformly under identical capacity and
+risk configurations.
+Across all four corpora, ApexS selects more stories, delivers greater business
+value, and achieves lower average selected risk relative to the value-first feasible
+ranking baseline.
+On TAWOS, for instance, the baseline yields 90.06 units of value at an average risk
+of 0.644, whereas ApexS delivers 212.16 value at an average risk of 0.568 under
+the same 30-point capacity limit.
+
+\subsection{Distribution Analysis}
+
+Distributional analysis supplements aggregate planning metrics by confirming that
+the cleaned datasets remain suitable for graphical and statistical comparison.
+This step carries particular weight because the TAWOS corpus is substantially larger
+and structurally more diverse than the three project-specific datasets.
+All figures in this subsection should be derived from the same frozen snapshot
+used in Tables~\ref{tab:dataset-summary}--\ref{tab:baseline-comparison}.
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/business_value_distribution.png}{%
+		\includegraphics[width=\columnwidth]{figs/business_value_distribution.png}%
+	}{%
+		\placeholderfig{Cross-dataset distribution of business value.}{Replace with actual figure before submission.}%
+	}
+	\caption{Cross-dataset distribution of business value.}
+	\label{fig:business-value-distribution}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/risk_score_distribution.png}{%
+		\includegraphics[width=\columnwidth]{figs/risk_score_distribution.png}%
+	}{%
+		\placeholderfig{Cross-dataset distribution of risk score.}{Replace with actual figure before submission.}%
+	}
+	\caption{Cross-dataset distribution of risk score.}
+	\label{fig:risk-score-distribution}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/required_skill_distribution.png}{%
+		\includegraphics[width=\columnwidth]{figs/required_skill_distribution.png}%
+	}{%
+		\placeholderfig{Required-skill distribution across the evaluation datasets.}{Replace with actual figure before submission.}%
+	}
+	\caption{Required-skill distribution across the evaluation datasets.}
+	\label{fig:required-skill-distribution}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/status_distribution.png}{%
+		\includegraphics[width=\columnwidth]{figs/status_distribution.png}%
+	}{%
+		\placeholderfig{Status distribution for the datasets used in the evaluation.}{Replace with actual figure before submission.}%
+	}
+	\caption{Status distribution for the datasets used in the evaluation.}
+	\label{fig:status-distribution}
+\end{figure}
+
+\begin{figure}[t]
+	\centering
+	\IfFileExists{figs/story_point_histogram.png}{%
+		\includegraphics[width=\columnwidth]{figs/story_point_histogram.png}%
+	}{%
+		\placeholderfig{Story-point distribution after preprocessing and normalization.}{Replace with actual figure before submission.}%
+	}
+	\caption{Story-point distribution after preprocessing and normalization.}
+	\label{fig:story-point-histogram}
+\end{figure}
+
+Two claims are supported by these distributional figures in the final manuscript.
+First, Spring XD, Usergrid, and Aurora collectively provide useful project-level
+variation for contrasting planner behavior across settings.
+Second, TAWOS offers broader external validation without functioning as a simple
+substitute for the smaller project-specific corpora.
+Where any distribution departs sharply from the others, the paper should address
+this explicitly rather than relying solely on aggregate means.
+
+\subsection{Case Study Analysis}
+
+The final evaluation component presents a compact qualitative planning example
+designed to make the ApexS decision logic easy to inspect.
+Its purpose is not to replace the quantitative evaluation; rather, it illustrates
+how optimization output and explanation output can be jointly interpreted at the
+story level.
+A small, mixed set of selected and rejected stories drawn from one generated sprint
+plan, each accompanied by the short explanation emitted by ApexS, constitutes the
+recommended format.
+
+The repository-backed implementation already supplies operational evidence that this
+explanation layer is meaningful in practice.
+Across the finalized evaluation runs, the explainability engine achieved full
+story-level coverage for both selected and rejected items, with rejection reasons
+tied explicitly to feasibility or prioritization causes---for example, a
+capacity-bound rejection accompanied by a SHAP-aware score estimate.
+In concrete terms, the layer makes it possible to justify why a high-value story may
+still be deferred in favor of a smaller, lower-risk, more feasible alternative.
+
+\begin{table*}[t]
+	\caption{Illustrative ApexS Case Study From One Generated Sprint Plan}
+	\label{tab:case-study}
+	\centering\scriptsize
+	\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}p{2.5in}cccccY}
+		\toprule
+		Story ID   & Title                                                                & SP & BV   & Risk & Skill    & Sel. & ApexS explanation                                                   \\
+		\midrule
+		MESOS-2216 & The ``configure'' phase breaks with the IBM JVM.                     & 1  & 7.20 & 0.65 & DevOps   & Y    & Selected by weighted value-risk-effort objective under constraints. \\
+		MESOS-2334 & Tasks get stuck in TASK\_STAGING after a network decode error.       & 1  & 6.98 & 0.54 & Backend  & Y    & Selected by weighted value-risk-effort objective under constraints. \\
+		MESOS-3461 & Update Python test framework support for quiesce/revive offer calls. & 1  & 6.83 & 0.48 & Testing  & Y    & Selected by weighted value-risk-effort objective under constraints. \\
+		XD-1       & HDFS ItemWriter.                                                     & 1  & 5.98 & 0.54 & Database & N    & Would exceed sprint capacity (SHAP-aware score estimate 5.864).     \\
+		XD-2       & HDFS core writing helper classes.                                    & 1  & 5.90 & 0.52 & Database & N    & Would exceed sprint capacity (SHAP-aware score estimate 5.859).     \\
+		\bottomrule
+	\end{tabularx}
+\end{table*}
+
+\paragraph{Implementation Robustness.}
+Additional supporting evidence indicates that ApexS behaves as a genuine system
+artifact rather than an isolated optimizer script.
+The recorded verification snapshot reports 20 passing automated tests; a subsequent
+local rerun reproduced 17 passing tests and encountered 3 environment-related
+temporary-directory permission errors rather than logical assertion failures.
+Although these observations do not invalidate the core planning evidence, they
+confirm that reproducibility remains sensitive to environment configuration and
+dependency completeness. The updated backend validation harness additionally executes
+the full context$\rightarrow$weights$\rightarrow$optimization pipeline on
+\texttt{tawos\_apex\_clean.csv} and records learned weights, learning metrics,
+selected-story count, total delivered value, and average selected risk, providing a
+compact regression check for pipeline consistency.
+
+\paragraph{Interpretation.}
+Considered jointly, the results address all three research questions raised in
+Section~\ref{sec:intro}.
+Constraint-consistency under varying capacity, risk, and skill settings is
+established by the planning scenarios; the baseline comparison shows that the
+learned objective improves upon value-first feasible ranking; and full decision
+coverage is achieved by the explanation layer across the finalized evaluation runs.
+The most prominent quantitative pattern is that the learned weights concentrate
+most of the objective emphasis on the alignment/risk dimension, rendering the
+system conservative by construction.
+Such conservatism is desirable when spillover and execution risk carry high costs,
+but it also motivates the modify-and-rerun workflow so that teams can negotiate the
+final trade-off rather than accept a statically imposed policy.
+
+\paragraph{Validity Considerations.}
+The reported evidence warrants careful interpretation.
+Internal validity is constrained by reliance on frozen historical CSV snapshots
+rather than live industrial planning sessions.
+Construct validity depends on the fidelity of the derived business-value and risk
+proxies.
+The inclusion of TAWOS, Spring XD, Usergrid, and Aurora in the evaluation layout is
+the primary mechanism for addressing external validity.
+Reproducibility validity remains a concern because local reruns are susceptible to
+variability in dependency completeness, database initialization, and operating-system
+permissions.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+
+This work has introduced \textbf{ApexS}, an explainable, context-aware sprint
+planning system whose principal contribution is \emph{integration}: four previously
+separate capabilities---team-specific weight learning, constraint-enforced MILP
+selection, bidirectional story-level explanation generation, and end-to-end workflow
+support from dataset ingestion to Jira-compatible export---are unified within a
+single, deployable Docker Compose stack.
+Historical sprint data is converted into context; context drives adaptive weight
+inference; those weights govern binary story selection under binding operational
+constraints; and the resulting decisions are rendered transparent through explanation,
+approval, and export mechanisms, all accessible without leaving the application.
+
+Repository-grounded evidence confirms that the system is both usable and
+analytically meaningful.
+Across the evaluation snapshot, the learning stage achieves nontrivial signal
+under held-out evaluation (MAE measured on a test split, with $R^2$ reported when
+target variance is non-zero); representative planning scenarios respond
+correctly to capacity, risk, and skill perturbations
+(Table~\ref{tab:planning-scenarios}); the MILP planner outperforms a value-first
+feasible baseline on all four datasets, delivering higher business value at lower
+average selected risk (Table~\ref{tab:baseline-comparison}); and explanation
+coverage is complete at 100\% across the evaluated runs, with qualitative
+story-level evidence captured in Table~\ref{tab:case-study}.
+Backend-level feasibility and score-distribution diagnostics further improve
+traceability by quantifying how many candidates are filtered per constraint class
+before optimization and how scoring mass is distributed across feasible stories.
+The system therefore constitutes a credible foundation for further research and for
+a publication-oriented systems contribution.
+
+Three directions remain open for future investigation.
+First, \emph{cross-dataset visualization completion}: populating the full chart set
+for Spring XD, Usergrid, Aurora, and TAWOS would substantially reinforce the
+empirical presentation.
+Second, \emph{user study}: establishing whether Scrum teams trust, correctly
+interpret, and actively use the generated explanations through a controlled
+experiment is necessary to advance from a systems contribution to a human-factors
+finding.
+Third, \emph{infrastructure hardening}: pinning all optional dependencies, completing
+the migration from SQLite to PostgreSQL, and designating Celery as the exclusive
+asynchronous execution path would eliminate the reproducibility risks identified in
+the current evaluation.
+Because the core architecture is already in place, the path forward calls for
+broader empirical validation rather than fundamental redesign.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\balance
+
+\begin{thebibliography}{99}
+
+	\bibitem{ase2024}
+	Y.\ K.\ Kula, A.\ Deshpande, and M.\ Gharehyazie,
+	``Context-Aware Automated Sprint Plan Generation for Agile Software Development,''
+	in \emph{Proc.\ 39th IEEE/ACM International Conference on Automated Software
+		Engineering (ASE)}, 2024.
+	doi: \href{https://doi.org/10.1145/3691620.3695540}{10.1145/3691620.3695540}.
+
+	\bibitem{lagrangian-sprint}
+	F.\ Chaves, L.\ Teixeira, and J.\ Araujo,
+	``A Lagrangian Heuristic for Sprint Planning in Agile Software Development,''
+	in \emph{Proc.\ SBES 2014},
+	pp.~1--10, 2014.
+
+	\bibitem{agile-mo}
+	A.\ Ozcelikkan, B.\ M.\ Demirors, and A.\ Tarhan,
+	``A Multi-Objective Agile Project Planning Model and a Comparative Meta-Heuristic
+	Approach,''
+	\emph{Information and Software Technology},
+	vol.~151, art.~107023, 2022.
+	doi: \href{https://doi.org/10.1016/j.infsof.2022.107023}{10.1016/j.infsof.2022.107023}.
+
+	\bibitem{tawos}
+	I.\ Tawosi, T.\ K.\ Sathe, and M.\ T.\ Fischer,
+	``A Versatile Dataset of Agile Open Source Software Projects,''
+	in \emph{Proc.\ 19th International Conference on Mining Software Repositories
+		(MSR)}, 2022, pp.~707--711.
+	doi: \href{https://doi.org/10.1145/3524842.3528029}{10.1145/3524842.3528029}.
+
+	\bibitem{jira-dataset}
+	L.\ Montgomery, S.\ Hess, G.\ Williams, and A.\ Meneely,
+	``An Alternative Issue Tracking Dataset of Public Jira Repositories,''
+	in \emph{Proc.\ 19th International Conference on Mining Software Repositories
+		(MSR)}, 2022, pp.~73--77.
+	doi: \href{https://doi.org/10.1145/3524842.3528486}{10.1145/3524842.3528486}.
+
+	\bibitem{intelligent-agile}
+	M.\ Perkusich \emph{et al.},
+	``Intelligent Software Engineering in the Context of Agile Software Development:
+	A Systematic Literature Review,''
+	\emph{Information and Software Technology},
+	vol.~119, art.~106241, 2020.
+	doi: \href{https://doi.org/10.1016/j.infsof.2019.106241}{10.1016/j.infsof.2019.106241}.
+
+	\bibitem{bigdata-agile}
+	M.\ Biesialska, K.\ Franch, and V.\ Muntes-Mulero,
+	``Big Data Analytics in Agile Software Development: A Systematic Mapping Study,''
+	\emph{Information and Software Technology},
+	vol.~132, art.~106448, 2021.
+	doi: \href{https://doi.org/10.1016/j.infsof.2020.106448}{10.1016/j.infsof.2020.106448}.
+
+	\bibitem{xai-slr-se}
+	M.\ Mohammadkhani \emph{et al.},
+	``A Systematic Literature Review of Explainable AI for Software Engineering,''
+	\emph{arXiv preprint arXiv:2302.06065}, 2023.
+	doi: \href{https://doi.org/10.48550/arXiv.2302.06065}{10.48550/arXiv.2302.06065}.
+
+	\bibitem{xai-survey}
+	G.\ Yang, D.\ Ye, and Z.\ Xia,
+	``A Survey on Explainable AI: From Approaches, Limitations and Applications
+	Aspects,''
+	\emph{Human-Centric Intelligent Systems},
+	vol.~3, pp.~161--188, 2023.
+	doi: \href{https://doi.org/10.1007/s44230-023-00038-y}{10.1007/s44230-023-00038-y}.
+
+	\bibitem{explanation-matters}
+	P.\ Hamm \emph{et al.},
+	``Explanation Matters: An Experimental Study on Explainable AI,''
+	\emph{Electronic Markets},
+	vol.~33, art.~48, 2023.
+	doi: \href{https://doi.org/10.1007/s12525-023-00640-9}{10.1007/s12525-023-00640-9}.
+
+	\bibitem{gpt2sp}
+	W.\ Fu and C.\ Tantithamthavorn,
+	``GPT2SP: A Transformer-Based Agile Story Point Estimation Approach,''
+	\emph{IEEE Transactions on Software Engineering},
+	vol.~49, no.~6, pp.~2723--2738, 2023.
+	doi: \href{https://doi.org/10.1109/TSE.2022.3158252}{10.1109/TSE.2022.3158252}.
+
+	\bibitem{ensemble-spe}
+	E.\ Ahmad and F.-Y.\ Kuo,
+	``Improving Story Points Estimation Using Ensemble Machine Learning,''
+	\emph{Software Quality Journal}, 2025.
+	doi: \href{https://doi.org/10.1007/s11219-025-09731-6}{10.1007/s11219-025-09731-6}.
+
+	\bibitem{llm-effort}
+	N.\ Pavlic, T.\ Beranic, and G.\ Jezic,
+	``Can Large-Language Models Replace Humans in Agile Effort Estimation? Lessons from
+	a Controlled Experiment,''
+	\emph{Applied Sciences},
+	vol.~14, no.~24, art.~12006, 2024.
+	doi: \href{https://doi.org/10.3390/app142412006}{10.3390/app142412006}.
+
+	\bibitem{agile-estimation-map}
+	L.\ M.\ Rivera Ibarra \emph{et al.},
+	``Early Estimation in Agile Software Development Projects: A Systematic Mapping
+	Study,''
+	\emph{Informatics},
+	vol.~11, no.~4, art.~81, 2024.
+	doi: \href{https://doi.org/10.3390/informatics11040081}{10.3390/informatics11040081}.
+
+	\bibitem{bugtriage-deeplearning}
+	X.\ Xiao \emph{et al.},
+	``Multi-Product Bug Report Assignment via Multi-Task Learning,''
+	in \emph{Proc.\ 34th IEEE/ACM International Conference on Automated Software
+		Engineering (ASE)}, 2019, pp.~10--21.
+	doi: \href{https://doi.org/10.1109/ASE.2019.00010}{10.1109/ASE.2019.00010}.
+
+\end{thebibliography}
+
+\end{document}

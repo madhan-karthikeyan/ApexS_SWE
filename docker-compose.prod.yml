@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sprintplanner
+      POSTGRES_USER: apexs
+      POSTGRES_PASSWORD: apexsecret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - miniodata:/data
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+      - minio
+
+  celery_worker:
+    build: ./backend
+    restart: unless-stopped
+    command: python -m celery -A app.workers.celery_app:celery_app worker --loglevel=info
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    command: npm run preview -- --host 0.0.0.0 --port 4173
+    environment:
+      - VITE_API_PROXY_TARGET=http://backend:8000
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  pgdata:
+  miniodata:

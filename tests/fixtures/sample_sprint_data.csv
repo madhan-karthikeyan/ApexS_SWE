@@ -1,0 +1,8 @@
+story_id,title,story_points,business_value,risk_score,required_skill,sprint_id,sprint_completed,depends_on
+US101,Login API,8,9,0.2,Backend,SP01,1,
+US104,Payment Gateway,8,10,0.4,Backend,SP01,1,US101
+US205,Unit Tests,3,6,0.1,Testing,SP01,1,
+US310,DB Migration,5,7,0.6,Database,SP01,0,
+US402,Payment Integration,13,8,0.9,Backend,SP01,0,US104
+US501,Profile UI,5,7,0.2,Frontend,SP02,1,
+US601,Auth Middleware,3,8,0.15,Backend,SP02,1,US101

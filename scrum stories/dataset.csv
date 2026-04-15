@@ -1,0 +1,22 @@
+ExampleApp Functional Specification,Unnamed: 1
+,
+Author:,Tony Heap
+,
+Version:,This is a living document and is not formally version controlled.
+,"Accordingly, there is no formal sign-off of the document as a whole. Rather, each ""acceptance criterion"" is signed off individually (see the ""Agreed"" columns on the ""Details"" worksheet)."
+,
+Overview:,"This document (together with a number of supplementary documents) is the functional specification for the ""ExampleApp"" project."
+,This document specifies what the system will do as opposed to how it will do it (i.e. It is not a technical specification).
+,This document specifies only the changes to the system; it does not specify existing functionality.
+,
+Structure:,"The functional specification consists of a set of ""stories""."
+,"Each story describes some aspect of the system's behaviour, either functional or non-functional."
+,A story is the smallest unit of system delivery - a story is either delivered or it is not.
+,"In practice, stories are grouped together and delivered as (time-boxed) ""increments"" every 3-4 weeks."
+,"The ""Summary"" worksheet is an inventory of all the stories, along with various information for each one."
+,"In particular, the ""Status"" column in the ""Summary"" worksheet indicates the status of each story, from ""being elaborated"" right through to ""gone live""."
+,"The ""Details"" worksheet contains the detailed specification for each story."
+,"Each story is specified in ""use case"" format (ref. ""Writing Effective Use Cases"", Alistair Cockburn, 2001)."
+,"See the column heading comments on the ""Summary"" and ""Details"" worksheets for further details on the format of the specification."
+,"The ""Actors"" workheet specifies all actors (users and external systems)"
+,"The ""Stats"" worksheets show development progress for individual increments, in the form of a ""burn down chart"""

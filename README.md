@@ -123,4 +123,4 @@ python scripts/convert_dataset.py jira_export.csv ready_for_apex.csv
 
 **Required Columns:** `story_id`, `title`, `description`, `story_points`, `business_value`, `risk_score`, `required_skill`, `depends_on`.
 
-*(See the `tmp/` folder for pre-validated sample datasets.)*
+

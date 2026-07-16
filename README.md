@@ -242,26 +242,30 @@ Polls the status of a generation job.
 
 ---
 
-## 11. Future Improvements
+## 11. Roadmap
 
-- [ ] **Authentication**: Implement OAuth2 / JWT for multi-tenant team access.
-- [ ] **Multi-Objective Optimization**: Allow maximizing value while simultaneously minimizing risk (Pareto frontier).
-- [ ] **Historical Learning**: Machine learning model to predict story points based on historical developer velocity.
-- [ ] **Jira Integration**: Native bidirectional sync for fetching backlogs and pushing approved sprints.
-- [ ] **GitHub Projects Integration**: Native sync for GitHub Issues.
+- [ ] **Authentication** — Add OAuth2/JWT authentication and multi-user workspaces.
+- [ ] **Multi-Objective Optimization** — Optimize across multiple objectives (e.g., maximize business value while minimizing sprint risk using Pareto optimization).
+- [ ] **Historical Velocity Learning** — Predict story points and sprint capacity using historical team velocity.
+- [ ] **Jira Integration** — Bidirectional synchronization for importing backlogs and exporting approved sprint plans.
+- [ ] **GitHub Projects Integration** — Synchronize GitHub Issues and Projects with sprint backlogs.
 
 ---
 
-## 12. Engineering Decisions
+## 12. Design Decisions
 
-> [!IMPORTANT]  
-> **FastAPI over Flask**: Selected for native `asyncio` support and automatic OpenAPI schema generation, which drastically reduced frontend integration friction.
+> [!IMPORTANT]
+> **FastAPI over Flask**  
+> Chosen for native asynchronous request handling, automatic OpenAPI documentation, and strong type validation through Pydantic, simplifying API development and frontend integration.
 
-> [!IMPORTANT]  
-> **Celery over BackgroundTasks**: While FastAPI has `BackgroundTasks`, ILP solving is heavily CPU-bound and blocks the Python GIL. Celery + Redis ensures the web thread pool is never starved.
+> [!IMPORTANT]
+> **Celery + Redis over FastAPI BackgroundTasks**  
+> Sprint optimization is computationally intensive. Offloading ILP jobs to Celery workers prevents long-running tasks from blocking API workers, keeping the application responsive and enabling scalable asynchronous execution.
 
-> [!IMPORTANT]  
-> **PostgreSQL over SQLite**: Sprints require complex relationships (Stories $\rightarrow$ Dependencies $\rightarrow$ Explanations) and concurrent writes from Celery workers. Postgres handles this safely without database locking issues.
+> [!IMPORTANT]
+> **PostgreSQL over SQLite**  
+> The application manages relational entities such as stories, dependencies, sprint plans, and explanations while supporting concurrent access from API and worker processes. PostgreSQL provides reliable transactional integrity, concurrency, and scalability for this workload.
 
-> [!IMPORTANT]  
-> **ILP instead of Greedy Heuristics**: A greedy algorithm (sorting by Value/Points ratio) fails the multidimensional knapsack problem (especially with skill constraints and dependencies). ILP guarantees a globally optimal mathematical solution.
+> [!IMPORTANT]
+> **Integer Linear Programming over Greedy Heuristics**  
+> Sprint planning is a constrained optimization problem involving capacity, skill availability, dependencies, and risk limits. Greedy heuristics cannot guarantee globally optimal solutions under multiple constraints, whereas ILP computes the optimal feasible sprint plan.

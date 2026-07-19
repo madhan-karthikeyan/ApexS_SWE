@@ -5,9 +5,10 @@ from io import BytesIO
 import pandas as pd
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.core.minio_client import read_bytes
 from app.core.security import require_roles
 from app.models.context import Context
@@ -34,20 +35,34 @@ router = APIRouter()
 
 
 @router.get("/{team_id}/metrics", response_model=MetricsRead)
-def get_metrics(team_id: str, db: Session = Depends(get_db), _=Depends(require_roles("scrum_master", "product_owner"))):
-    sprints = db.query(Sprint).filter(Sprint.team_id == team_id).order_by(Sprint.created_at.asc()).all()
+async def get_metrics(team_id: str, db: AsyncSession = Depends(get_async_db), _=Depends(require_roles("scrum_master", "product_owner"))):
+    result = await db.execute(
+        select(Sprint).where(Sprint.team_id == team_id).order_by(Sprint.created_at.asc())
+    )
+    sprints = result.scalars().all()
     velocities = []
     values = []
     weight_evolution = []
     for sprint in sprints[-5:]:
-        plans = db.query(SprintPlan).filter(SprintPlan.sprint_id == sprint.sprint_id).all()
-        stories = db.query(UserStory).filter(UserStory.sprint_id == sprint.sprint_id).all()
+        result = await db.execute(
+            select(UserStory).where(UserStory.sprint_id == sprint.sprint_id)
+        )
+        stories = result.scalars().all()
         velocities.append(float(sum(s.story_points for s in stories)))
         values.append(float(sum(s.business_value for s in stories)))
-        context = db.query(Context).filter(Context.team_id == team_id).order_by(Context.computed_at.asc()).first()
+        result = await db.execute(
+            select(Context).where(Context.team_id == team_id).order_by(Context.computed_at.asc()).limit(1)
+        )
+        context = result.scalar_one_or_none()
         if context:
             weight_evolution.append({"urgency_weight": context.urgency_weight, "value_weight": context.value_weight, "alignment_weight": context.alignment_weight})
-    selected = db.query(UserStory).join(Sprint, Sprint.sprint_id == UserStory.sprint_id).filter(Sprint.team_id == team_id, UserStory.status == "backlog").all()
+
+    result = await db.execute(
+        select(UserStory)
+        .join(Sprint, Sprint.sprint_id == UserStory.sprint_id)
+        .where(Sprint.team_id == team_id, UserStory.status == "backlog")
+    )
+    selected = result.scalars().all()
     risk_selected = sum(s.risk_score for s in selected) / max(len(selected), 1)
     risk_rejected = max((s.risk_score for s in selected), default=0.0)
 
@@ -58,20 +73,21 @@ def get_metrics(team_id: str, db: Session = Depends(get_db), _=Depends(require_r
     learning_feature_importance: dict[str, float] = {}
     learning_model_type = "unknown"
 
-    latest_dataset = (
-        db.query(DatasetUpload)
-        .filter(DatasetUpload.team_id == team_id)
+    result = await db.execute(
+        select(DatasetUpload)
+        .where(DatasetUpload.team_id == team_id)
         .order_by(DatasetUpload.uploaded_at.desc())
-        .first()
+        .limit(1)
     )
+    latest_dataset = result.scalar_one_or_none()
     if latest_dataset and latest_dataset.file_path:
         try:
-            uploads = (
-                db.query(DatasetUpload)
-                .filter(DatasetUpload.team_id == team_id)
+            result = await db.execute(
+                select(DatasetUpload)
+                .where(DatasetUpload.team_id == team_id)
                 .order_by(DatasetUpload.uploaded_at.asc())
-                .all()
             )
+            uploads = result.scalars().all()
             frames: list[pd.DataFrame] = []
             seen_paths: set[str] = set()
             for upload in uploads:

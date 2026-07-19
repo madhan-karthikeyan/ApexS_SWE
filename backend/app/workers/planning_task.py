@@ -333,7 +333,16 @@ def execute_planning_pipeline(
 
 
 if celery_app is not None:
-    @celery_app.task(bind=True, name="run_sprint_planning")
+    @celery_app.task(
+        bind=True,
+        name="run_sprint_planning",
+        autoretry_for=(Exception,),
+        retry_backoff=True,
+        retry_backoff_max=300,
+        retry_jitter=True,
+        max_retries=3,
+        default_retry_delay=30,
+    )
     def run_sprint_planning(self, sprint_id: str, team_id: str, dataset_path: str, capacity: int, risk_threshold: float, available_skills: list[str]):
         def task_progress(status: str, progress: int, step: str, plan_id: str | None = None, error: str | None = None):
             meta = {"status": status, "progress": progress, "step": step, "plan_id": plan_id, "error": error}
@@ -344,16 +353,21 @@ if celery_app is not None:
             else:
                 self.update_state(state="PROGRESS", meta=meta)
 
-        return execute_planning_pipeline(
-            sprint_id,
-            team_id,
-            dataset_path,
-            capacity,
-            risk_threshold,
-            available_skills,
-            job_id=getattr(self.request, "id", None),
-            progress_callback=task_progress,
-        )
+        try:
+            return execute_planning_pipeline(
+                sprint_id,
+                team_id,
+                dataset_path,
+                capacity,
+                risk_threshold,
+                available_skills,
+                job_id=getattr(self.request, "id", None),
+                progress_callback=task_progress,
+            )
+        except Exception as exc:
+            logger.exception("Sprint planning task failed (attempt %s/%s): %s",
+                             self.request.retries + 1, self.max_retries + 1, exc)
+            raise
 
 
 def run_async_job(sprint_id: str, team_id: str, dataset_path: str, capacity: int, risk_threshold: float, available_skills: list[str]) -> str:

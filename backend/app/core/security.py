@@ -7,10 +7,12 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import get_async_db, get_db
 from app.models.user import User
 from app.core.auth_backend import get_jwt_strategy
 
@@ -45,16 +47,17 @@ def decode_access_token(token: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     if settings.enforce_auth and credentials is not None:
         try:
             payload = decode_access_token(credentials.credentials)
             user_id = payload.get("sub")
             if user_id:
-                user = db.query(User).filter(User.id == str(user_id)).first()
+                result = await db.execute(select(User).where(User.id == str(user_id)))
+                user = result.scalar_one_or_none()
                 if user and user.is_active:
                     return user
         except Exception:
@@ -71,7 +74,8 @@ def get_current_user(
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if not user.is_active:
@@ -80,7 +84,7 @@ def get_current_user(
 
 
 def require_roles(*roles: str):
-    def dependency(current_user=Depends(get_current_user)):
+    async def dependency(current_user=Depends(get_current_user)):
         if roles and current_user.role not in roles:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
         return current_user

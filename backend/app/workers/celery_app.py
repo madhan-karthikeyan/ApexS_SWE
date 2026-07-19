@@ -16,4 +16,15 @@ celery_app.conf.update(
 	task_serializer="json",
 	result_serializer="json",
 	accept_content=["json"],
+	task_acks_late=True,
+	task_reject_on_worker_lost=True,
+	task_soft_time_limit=600,
+	task_time_limit=660,
+	broker_transport_options={
+		"max_retries": 3,
+		"interval_start": 5,
+		"interval_step": 10,
+		"interval_max": 60,
+	},
+	result_expires=86400,
 )

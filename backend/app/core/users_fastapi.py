@@ -1,28 +1,32 @@
 from __future__ import annotations
 
-from typing import Generator
+from typing import AsyncGenerator
 
 from fastapi import Depends
 from fastapi_users import BaseUserManager, FastAPIUsers
 from fastapi_users.db import BaseUserDatabase
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth_backend import auth_backend
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.core.security import hash_password
 from app.models.user import User
 from app.schemas.auth_fastapi_users import UserCreate, UserRead, UserUpdate
 
 
 class UserDatabaseAdapter(BaseUserDatabase[User, str]):
-    def __init__(self, db):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     async def get(self, id: str):
-        return self.db.query(User).filter(User.id == str(id)).first()
+        result = await self.db.execute(select(User).where(User.id == str(id)))
+        return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str):
-        return self.db.query(User).filter(User.email == email).first()
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
 
     async def get_by_oauth_account(self, oauth: str, account_id: str):
         return None
@@ -37,20 +41,20 @@ class UserDatabaseAdapter(BaseUserDatabase[User, str]):
             is_verified=create_dict.get("is_verified", False),
         )
         self.db.add(user)
-        self.db.commit()
-        self.db.refresh(user)
+        await self.db.commit()
+        await self.db.refresh(user)
         return user
 
     async def update(self, user: User, update_dict: dict):
         for key, value in update_dict.items():
             setattr(user, key, value)
-        self.db.commit()
-        self.db.refresh(user)
+        await self.db.commit()
+        await self.db.refresh(user)
         return user
 
     async def delete(self, user: User):
-        self.db.delete(user)
-        self.db.commit()
+        await self.db.delete(user)
+        await self.db.commit()
 
     async def add_oauth_account(self, user: User, create_dict: dict):
         return user
@@ -59,7 +63,7 @@ class UserDatabaseAdapter(BaseUserDatabase[User, str]):
         return user
 
 
-def get_user_db(db=Depends(get_db)) -> Generator[UserDatabaseAdapter, None, None]:
+async def get_user_db(db=Depends(get_async_db)) -> AsyncGenerator[UserDatabaseAdapter, None]:
     yield UserDatabaseAdapter(db)
 
 

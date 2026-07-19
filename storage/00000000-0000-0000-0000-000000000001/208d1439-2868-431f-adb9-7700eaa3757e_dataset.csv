@@ -1,0 +1,5 @@
+story_id,title,story_points,business_value,risk_score,required_skill,sprint_id,sprint_completed,depends_on,status
+US-1,Core API,5,9,0.2,Backend,SP1,1,,backlog
+US-2,UI Dashboard,5,8,0.3,Frontend,SP1,1,,backlog
+US-3,Reports,3,6,0.4,Backend,SP1,1,US-1,backlog
+US-4,High Risk Spike,3,10,0.95,Backend,SP1,0,,backlog

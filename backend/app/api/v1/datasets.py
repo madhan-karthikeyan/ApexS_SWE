@@ -6,9 +6,10 @@ from uuid import UUID, uuid4
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.core.minio_client import read_bytes, save_bytes
 from app.models.dataset_upload import DatasetUpload
 from app.schemas.common import DatasetPreviewResponse, DatasetUploadRead
@@ -20,7 +21,7 @@ REQUIRED_COLUMNS = ["story_id", "story_points", "business_value", "risk_score"]
 
 
 @router.post("/upload")
-async def upload_dataset(file: UploadFile = File(...), team_id: str = Form(...), db: Session = Depends(get_db)):
+async def upload_dataset(file: UploadFile = File(...), team_id: str = Form(...), db: AsyncSession = Depends(get_async_db)):
     content = await file.read()
     try:
         df = pd.read_csv(BytesIO(content))
@@ -37,8 +38,8 @@ async def upload_dataset(file: UploadFile = File(...), team_id: str = Form(...),
     stored_path = save_bytes(path, content)
     upload = DatasetUpload(team_id=str(team_id), filename=safe_name, file_path=stored_path, row_count=len(df), is_valid=True)
     db.add(upload)
-    db.commit()
-    db.refresh(upload)
+    await db.commit()
+    await db.refresh(upload)
     return {
         "upload_id": upload.upload_id,
         "rows": len(df),
@@ -50,8 +51,11 @@ async def upload_dataset(file: UploadFile = File(...), team_id: str = Form(...),
 
 
 @router.get("/{team_id}", response_model=list[DatasetUploadRead])
-def list_datasets(team_id: str, db: Session = Depends(get_db)):
-    uploads = db.query(DatasetUpload).filter(DatasetUpload.team_id == team_id).all()
+async def list_datasets(team_id: str, db: AsyncSession = Depends(get_async_db)):
+    result = await db.execute(
+        select(DatasetUpload).where(DatasetUpload.team_id == team_id)
+    )
+    uploads = result.scalars().all()
     return [
         {
             "upload_id": u.upload_id,
@@ -67,8 +71,11 @@ def list_datasets(team_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{upload_id}/preview")
-def preview_dataset(upload_id: str, db: Session = Depends(get_db)):
-    upload = db.query(DatasetUpload).filter(DatasetUpload.upload_id == upload_id).first()
+async def preview_dataset(upload_id: str, db: AsyncSession = Depends(get_async_db)):
+    result = await db.execute(
+        select(DatasetUpload).where(DatasetUpload.upload_id == upload_id)
+    )
+    upload = result.scalar_one_or_none()
     if not upload or not upload.file_path:
         raise HTTPException(status_code=404, detail="Upload not found")
     path = upload.file_path

@@ -13,7 +13,7 @@ from sqlalchemy import text
 from app.api.v1 import auth, teams, datasets, sprints, stories, plans, reports
 from app.api.v1.context import router as context_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, async_engine, engine
 from app.core.minio_client import ensure_bucket
 from app.models.team import ScrumTeam
 from app.workers.planning_task import celery_app
@@ -54,7 +54,7 @@ if settings.serve_frontend:
         app.mount("/assets", StaticFiles(directory=str(dist_dir / "assets")), name="frontend-assets")
 
         @app.get("/{path:path}")
-        def serve_spa(path: str):
+        async def serve_spa(path: str):
             if path.startswith("api") or path in {"docs", "openapi.json", "redoc", "health"}:
                 return {"message": "Explainable Sprint Planner API"}
             target = dist_dir / path
@@ -75,46 +75,42 @@ async def request_log_middleware(request, call_next):
 
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     # Keep local/dev startup resilient by creating schema when migrations are absent.
-    Base.metadata.create_all(bind=engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     ensure_bucket()
-    from app.core.database import SessionLocal
+    from app.core.database import AsyncSessionLocal
+    from sqlalchemy import select
 
-    db = SessionLocal()
-    try:
+    async with AsyncSessionLocal() as db:
         default_team_id = "00000000-0000-0000-0000-000000000001"
         try:
-            existing = db.query(ScrumTeam).filter(ScrumTeam.team_id == default_team_id).first()
+            result = await db.execute(select(ScrumTeam).where(ScrumTeam.team_id == default_team_id))
+            existing = result.scalar_one_or_none()
             if not existing:
                 db.add(ScrumTeam(team_id=default_team_id, name="ApexS Default Team", team_size=5, capacity=30, skills=["Backend", "Frontend", "Database", "Testing"]))
-                db.commit()
+                await db.commit()
         except Exception:
-            # In production, schema should be created via Alembic before startup.
-            db.rollback()
-    finally:
-        db.close()
+            await db.rollback()
 
 
 @app.get("/")
-def root():
+async def root():
     return {"message": "Explainable Sprint Planner API"}
 
 
 @app.get("/health")
-def health():
+async def health():
     db_ok = True
     redis_ok = True
     minio_ok = ensure_bucket()
 
     try:
-        from app.core.database import SessionLocal
+        from app.core.database import AsyncSessionLocal
 
-        db = SessionLocal()
-        try:
-            db.execute(text("SELECT 1"))
-        finally:
-            db.close()
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
     except Exception:
         db_ok = False
 
